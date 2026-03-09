@@ -81,6 +81,7 @@ Il deploy avviene tramite GitHub Actions che legge i valori dai **GitHub Secrets
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Sender ID Firebase |
 | `VITE_FIREBASE_APP_ID` | App ID Firebase |
 | `VITE_ALLOWED_GITHUB_USERS` | il tuo username GitHub in minuscolo |
+| `VITE_ACCESS_CODE` | il codice che userai per accedere (scelto da te) |
 | `VITE_GEMINI_API_KEY` | API key Gemini |
 
 > Una volta salvati, i Secrets non sono piu' visibili (nemmeno a te).

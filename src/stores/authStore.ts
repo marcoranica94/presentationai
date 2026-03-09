@@ -7,7 +7,6 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db, githubProvider } from '@/config/firebase';
-import { hashCode, generateSalt } from '@/lib/utils';
 import type { User } from '@/types';
 
 interface AuthState {
@@ -15,7 +14,6 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   needsAccessCode: boolean;
-  isFirstAccess: boolean;
   error: string | null;
   loginAttempts: number;
   lockedUntil: number | null;
@@ -23,7 +21,6 @@ interface AuthState {
   initialize: () => () => void;
   loginWithGitHub: () => Promise<void>;
   verifyAccessCode: (code: string) => Promise<boolean>;
-  setAccessCode: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -33,15 +30,58 @@ const ALLOWED_USERS = (import.meta.env.VITE_ALLOWED_GITHUB_USERS || '')
   .map((u: string) => u.trim().toLowerCase())
   .filter(Boolean);
 
+const ACCESS_CODE = import.meta.env.VITE_ACCESS_CODE || '';
+
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 min
+const SESSION_KEY = 'pai_session_verified';
+
+async function loadOrCreateUserDoc(firebaseUser: FirebaseUser): Promise<User> {
+  const ref = doc(db, 'users', firebaseUser.uid);
+  const snap = await getDoc(ref);
+
+  if (snap.exists()) {
+    return { uid: firebaseUser.uid, ...snap.data() } as User;
+  }
+
+  const newUser: Omit<User, 'uid'> = {
+    githubUsername: (
+      firebaseUser.providerData[0]?.displayName ||
+      firebaseUser.displayName ||
+      ''
+    ).toLowerCase(),
+    email: firebaseUser.email || '',
+    avatarUrl: firebaseUser.photoURL || '',
+    accessCodeHash: '',
+    accessCodeSalt: '',
+    createdAt: new Date(),
+    lastLogin: new Date(),
+    settings: {
+      theme: 'auto',
+      defaultStyle: 'modern',
+      defaultPalette: 'indigo',
+      autoSave: true,
+    },
+    usage: {
+      projectsCreated: 0,
+      htmlGenerated: 0,
+      pdfExported: 0,
+      pngExported: 0,
+      published: 0,
+      storageUsed: 0,
+      aiCostsThisMonth: 0,
+    },
+  };
+
+  await setDoc(ref, newUser);
+  return { uid: firebaseUser.uid, ...newUser };
+}
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   firebaseUser: null,
   user: null,
   loading: true,
   needsAccessCode: false,
-  isFirstAccess: false,
   error: null,
   loginAttempts: 0,
   lockedUntil: null,
@@ -49,44 +89,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialize: () => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data() as User;
-            if (userData.accessCodeHash) {
-              set({
-                firebaseUser,
-                needsAccessCode: true,
-                isFirstAccess: false,
-                loading: false,
-              });
-            } else {
-              set({
-                firebaseUser,
-                needsAccessCode: true,
-                isFirstAccess: true,
-                loading: false,
-              });
-            }
-          } else {
-            set({
-              firebaseUser,
-              needsAccessCode: true,
-              isFirstAccess: true,
-              loading: false,
-            });
+        // Se la sessione corrente ha già verificato il codice, carica subito l'utente
+        const sessionVerified = sessionStorage.getItem(SESSION_KEY) === firebaseUser.uid;
+        if (sessionVerified) {
+          try {
+            const userData = await loadOrCreateUserDoc(firebaseUser);
+            set({ firebaseUser, user: userData, needsAccessCode: false, loading: false });
+          } catch {
+            set({ firebaseUser, needsAccessCode: true, loading: false });
           }
-        } catch {
-          set({ firebaseUser, loading: false, error: 'Errore caricamento profilo' });
+        } else {
+          set({ firebaseUser, needsAccessCode: true, loading: false });
         }
       } else {
-        set({
-          firebaseUser: null,
-          user: null,
-          loading: false,
-          needsAccessCode: false,
-          isFirstAccess: false,
-        });
+        sessionStorage.removeItem(SESSION_KEY);
+        set({ firebaseUser: null, user: null, needsAccessCode: false, loading: false });
       }
     });
     return unsubscribe;
@@ -105,8 +122,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (ALLOWED_USERS.length > 0 && !ALLOWED_USERS.includes(githubUsername)) {
         await signOut(auth);
         set({ loading: false, error: 'Accesso negato. Utente non autorizzato.' });
-        return;
       }
+      // onAuthStateChanged gestisce il resto
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Errore di login';
       set({ loading: false, error: message });
@@ -123,101 +140,48 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return false;
     }
 
-    try {
-      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-      if (!userDoc.exists()) return false;
-
-      const userData = userDoc.data();
-      const hash = await hashCode(code, userData.accessCodeSalt);
-
-      if (hash === userData.accessCodeHash) {
-        await updateDoc(doc(db, 'users', firebaseUser.uid), {
-          lastLogin: new Date(),
-        });
+    if (code !== ACCESS_CODE) {
+      const newAttempts = loginAttempts + 1;
+      if (newAttempts >= MAX_ATTEMPTS) {
         set({
-          user: { uid: firebaseUser.uid, ...userData } as User,
-          needsAccessCode: false,
-          loginAttempts: 0,
-          lockedUntil: null,
-          error: null,
+          loginAttempts: newAttempts,
+          lockedUntil: Date.now() + LOCKOUT_DURATION,
+          error: 'Troppi tentativi. Account bloccato per 15 minuti.',
         });
-        return true;
       } else {
-        const newAttempts = loginAttempts + 1;
-        if (newAttempts >= MAX_ATTEMPTS) {
-          set({
-            loginAttempts: newAttempts,
-            lockedUntil: Date.now() + LOCKOUT_DURATION,
-            error: 'Troppi tentativi. Account bloccato per 15 minuti.',
-          });
-        } else {
-          set({
-            loginAttempts: newAttempts,
-            error: `Codice non valido (${MAX_ATTEMPTS - newAttempts} tentativi rimasti)`,
-          });
-        }
-        return false;
+        set({
+          loginAttempts: newAttempts,
+          error: `Codice non valido (${MAX_ATTEMPTS - newAttempts} tentativi rimasti)`,
+        });
       }
+      return false;
+    }
+
+    try {
+      const userData = await loadOrCreateUserDoc(firebaseUser);
+      await updateDoc(doc(db, 'users', firebaseUser.uid), { lastLogin: new Date() });
+      sessionStorage.setItem(SESSION_KEY, firebaseUser.uid);
+      set({
+        user: userData,
+        needsAccessCode: false,
+        loginAttempts: 0,
+        lockedUntil: null,
+        error: null,
+      });
+      return true;
     } catch {
-      set({ error: 'Errore verifica codice' });
+      set({ error: 'Errore caricamento profilo' });
       return false;
     }
   },
 
-  setAccessCode: async (code: string) => {
-    const { firebaseUser } = get();
-    if (!firebaseUser) return;
-
-    const salt = generateSalt();
-    const hash = await hashCode(code, salt);
-
-    const userData: Partial<User> = {
-      uid: firebaseUser.uid,
-      githubUsername: (
-        firebaseUser.providerData[0]?.displayName ||
-        firebaseUser.displayName ||
-        ''
-      ).toLowerCase(),
-      email: firebaseUser.email || '',
-      avatarUrl: firebaseUser.photoURL || '',
-      accessCodeHash: hash,
-      accessCodeSalt: salt,
-      createdAt: new Date(),
-      lastLogin: new Date(),
-      settings: {
-        theme: 'auto',
-        defaultStyle: 'modern',
-        defaultPalette: 'indigo',
-        autoSave: true,
-      },
-      usage: {
-        projectsCreated: 0,
-        htmlGenerated: 0,
-        pdfExported: 0,
-        pngExported: 0,
-        published: 0,
-        storageUsed: 0,
-        aiCostsThisMonth: 0,
-      },
-    };
-
-    await setDoc(doc(db, 'users', firebaseUser.uid), userData);
-
-    set({
-      user: userData as User,
-      needsAccessCode: false,
-      isFirstAccess: false,
-      error: null,
-    });
-  },
-
   logout: async () => {
+    sessionStorage.removeItem(SESSION_KEY);
     await signOut(auth);
     set({
       firebaseUser: null,
       user: null,
       needsAccessCode: false,
-      isFirstAccess: false,
       error: null,
       loginAttempts: 0,
       lockedUntil: null,

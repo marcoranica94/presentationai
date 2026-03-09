@@ -1,33 +1,24 @@
 import { useState } from 'react';
-import { KeyRound, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { KeyRound, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAuthStore } from '@/stores/authStore';
 
-const MIN_LENGTH = 4;
-
 export function AccessCodePage() {
-  const { verifyAccessCode, setAccessCode, isFirstAccess, error, loading, logout, clearError } =
-    useAuthStore();
+  const { verifyAccessCode, error, loading, logout, clearError } = useAuthStore();
   const [code, setCode] = useState('');
   const [showCode, setShowCode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length < MIN_LENGTH) return;
+    if (!code) return;
 
     setSubmitting(true);
     clearError();
-
-    if (isFirstAccess) {
-      await setAccessCode(code);
-    } else {
-      await verifyAccessCode(code);
-    }
-
+    await verifyAccessCode(code);
     setSubmitting(false);
     setCode('');
   };
@@ -36,30 +27,16 @@ export function AccessCodePage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center space-y-2 text-center">
-          {isFirstAccess ? (
-            <ShieldCheck className="h-12 w-12 text-primary" />
-          ) : (
-            <KeyRound className="h-12 w-12 text-primary" />
-          )}
-          <h1 className="text-2xl font-bold tracking-tight">
-            {isFirstAccess ? 'Imposta Codice di Accesso' : 'Codice di Accesso'}
-          </h1>
-          <p className="text-muted-foreground">
-            {isFirstAccess
-              ? 'Scegli un codice per proteggere il tuo account'
-              : 'Inserisci il tuo codice per continuare'}
-          </p>
+          <KeyRound className="h-12 w-12 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight">Codice di Accesso</h1>
+          <p className="text-muted-foreground">Inserisci il tuo codice per continuare</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-center">
-              {isFirstAccess ? 'Nuovo Codice' : 'Verifica'}
-            </CardTitle>
+            <CardTitle className="text-center">Verifica</CardTitle>
             <CardDescription className="text-center">
-              {isFirstAccess
-                ? `Minimo ${MIN_LENGTH} caratteri — lettere, numeri, simboli`
-                : 'Inserisci il codice scelto al primo accesso'}
+              Inserisci il codice configurato nelle impostazioni
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -75,7 +52,7 @@ export function AccessCodePage() {
                   type={showCode ? 'text' : 'password'}
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  placeholder={isFirstAccess ? 'Scegli un codice...' : 'Inserisci il codice...'}
+                  placeholder="Inserisci il codice..."
                   autoFocus
                   autoComplete="off"
                   className="pr-10"
@@ -90,25 +67,17 @@ export function AccessCodePage() {
                 </button>
               </div>
 
-              {isFirstAccess && code.length > 0 && code.length < MIN_LENGTH && (
-                <p className="text-xs text-muted-foreground">
-                  Ancora {MIN_LENGTH - code.length} caratteri necessari
-                </p>
-              )}
-
               <Button
                 type="submit"
-                disabled={code.length < MIN_LENGTH || submitting || loading}
+                disabled={!code || submitting || loading}
                 className="w-full"
                 size="lg"
               >
                 {submitting ? (
                   <>
                     <Spinner className="h-4 w-4" />
-                    {isFirstAccess ? 'Salvataggio...' : 'Verifica...'}
+                    Verifica...
                   </>
-                ) : isFirstAccess ? (
-                  'Imposta Codice'
                 ) : (
                   'Accedi'
                 )}
