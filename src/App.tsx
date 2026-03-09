@@ -9,6 +9,7 @@ import { UploadPage } from '@/pages/UploadPage';
 import { ProjectsPage } from '@/pages/ProjectsPage';
 import { GeneratePage } from '@/pages/GeneratePage';
 import { ViewerPage } from '@/pages/ViewerPage';
+import { EditorPage } from '@/pages/EditorPage';
 import { SharePage } from '@/pages/SharePage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { Spinner } from '@/components/ui/Spinner';
@@ -57,6 +58,7 @@ export default function App() {
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
               <Route path="/view/:contentId" element={<ViewerPage />} />
+              <Route path="/edit/:contentId" element={<EditorPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AuthGuard>
