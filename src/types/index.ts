@@ -70,6 +70,8 @@ export interface GeneratedContent {
   style: PresentationStyle;
   palette: string;
   slideCount: number;
+  useCase: PresentationUseCase;
+  model: string;
   htmlContent: string;
   isPublic: boolean;
   createdAt: Date;
@@ -77,12 +79,22 @@ export interface GeneratedContent {
 
 export type PresentationStyle = 'modern' | 'minimal' | 'professional' | 'creative';
 
+export type PresentationUseCase = 'general' | 'political' | 'municipal';
+
 export interface GenerationConfig {
   style: PresentationStyle;
   palette: string;
   slideCount: number;
   language: 'auto' | 'it' | 'en';
+  useCase: PresentationUseCase;
+  model: string;
 }
+
+export const USE_CASES: Record<PresentationUseCase, { name: string; emoji: string; description: string }> = {
+  general:   { name: 'Generale',                    emoji: '📊', description: 'Presentazione standard' },
+  political: { name: 'Comunicazione Politica',       emoji: '🗳️', description: 'Messaggi persuasivi, call-to-action, valori' },
+  municipal: { name: 'Informazione Cittadinanza',    emoji: '🏛️', description: 'Comunicati istituzionali, servizi comunali, trasparenza' },
+};
 
 export const PALETTES: Record<string, { name: string; primary: string; secondary: string; bg: string; text: string }> = {
   indigo:   { name: 'Indigo',   primary: '#6366f1', secondary: '#818cf8', bg: '#0f0a2e', text: '#f1f5f9' },

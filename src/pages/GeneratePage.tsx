@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useProjectStore } from '@/stores/projectStore';
 import { useAuthStore } from '@/stores/authStore';
-import { PALETTES, STYLES } from '@/types';
-import type { GenerationConfig, PresentationStyle, GeneratedContent } from '@/types';
+import { PALETTES, STYLES, USE_CASES } from '@/types';
+import type { GenerationConfig, PresentationStyle, PresentationUseCase, GeneratedContent } from '@/types';
+import { GEMINI_MODELS } from '@/config/gemini';
 import { cn } from '@/lib/utils';
 
 const SLIDE_COUNTS = [6, 8, 10, 12, 15];
+const DEFAULT_MODEL = 'gemini-2.0-flash';
 
 export function GeneratePage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -26,6 +28,8 @@ export function GeneratePage() {
     palette: 'indigo',
     slideCount: 10,
     language: 'auto',
+    useCase: 'general',
+    model: DEFAULT_MODEL,
   });
 
   const [lastGenerated, setLastGenerated] = useState<GeneratedContent | null>(null);
@@ -69,13 +73,61 @@ export function GeneratePage() {
         </div>
       </div>
 
-      {/* Config Card */}
       <Card>
         <CardHeader>
           <CardTitle>Configurazione Presentazione</CardTitle>
-          <CardDescription>Scegli stile, palette e numero di slide</CardDescription>
+          <CardDescription>Scegli tipo, modello AI, stile, palette e numero di slide</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+
+          {/* Use Case */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Tipologia</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {(Object.keys(USE_CASES) as PresentationUseCase[]).map((uc) => (
+                <button
+                  key={uc}
+                  onClick={() => setConfig((c) => ({ ...c, useCase: uc }))}
+                  className={cn(
+                    'rounded-lg border p-3 text-left transition-colors',
+                    config.useCase === uc
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border hover:border-primary/40'
+                  )}
+                >
+                  <p className="text-base">{USE_CASES[uc].emoji}</p>
+                  <p className="text-sm font-medium mt-1">{USE_CASES[uc].name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{USE_CASES[uc].description}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Model */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Modello AI</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {Object.entries(GEMINI_MODELS).map(([id, m]) => (
+                <button
+                  key={id}
+                  onClick={() => setConfig((c) => ({ ...c, model: id }))}
+                  className={cn(
+                    'flex items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-colors',
+                    config.model === id
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/40'
+                  )}
+                >
+                  <div>
+                    <p className="text-sm font-medium">{m.name}</p>
+                    <p className="text-xs text-muted-foreground">{m.description}</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0 ml-2">{m.rpm} rpm</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Style */}
           <div className="space-y-2">
             <p className="text-sm font-medium">Stile</p>
@@ -113,10 +165,7 @@ export function GeneratePage() {
                       : 'border-border hover:border-primary/40'
                   )}
                 >
-                  <span
-                    className="h-4 w-4 rounded-full"
-                    style={{ background: pal.primary }}
-                  />
+                  <span className="h-4 w-4 rounded-full" style={{ background: pal.primary }} />
                   {pal.name}
                 </button>
               ))}
@@ -177,33 +226,29 @@ export function GeneratePage() {
           ) : (
             <Button onClick={handleGenerate} size="lg" className="w-full">
               <Sparkles className="h-5 w-5" />
-              Genera con Gemini AI
+              Genera con {GEMINI_MODELS[config.model]?.name ?? 'Gemini'}
             </Button>
           )}
         </CardContent>
       </Card>
 
-      {/* Last generated */}
       {lastGenerated && (
         <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10">
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="font-medium text-emerald-700 dark:text-emerald-400">
-                Presentazione generata!
-              </p>
+              <p className="font-medium text-emerald-700 dark:text-emerald-400">Presentazione generata!</p>
               <p className="text-sm text-muted-foreground">
-                {lastGenerated.slideCount} slide · {STYLES[lastGenerated.style].name} · {PALETTES[lastGenerated.palette]?.name}
+                {USE_CASES[lastGenerated.style as unknown as PresentationUseCase]?.emoji ?? '📊'}{' '}
+                {STYLES[lastGenerated.style].name} · {PALETTES[lastGenerated.palette]?.name}
               </p>
             </div>
             <Button onClick={() => navigate(`/view/${lastGenerated.id}`)}>
-              <Eye className="h-4 w-4" />
-              Visualizza
+              <Eye className="h-4 w-4" /> Visualizza
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Previous generations */}
       {projectGenerations.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">Presentazioni precedenti</p>
@@ -218,8 +263,7 @@ export function GeneratePage() {
                   </span>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => navigate(`/view/${gen.id}`)}>
-                  <Eye className="h-3.5 w-3.5" />
-                  Apri
+                  <Eye className="h-3.5 w-3.5" /> Apri
                 </Button>
               </CardContent>
             </Card>

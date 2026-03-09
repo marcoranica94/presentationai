@@ -183,6 +183,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         style: config.style,
         palette: config.palette,
         slideCount: config.slideCount,
+        useCase: config.useCase,
+        model: config.model,
         htmlContent: html,
         isPublic: false,
         createdAt: new Date(),

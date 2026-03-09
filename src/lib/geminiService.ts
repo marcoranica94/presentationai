@@ -1,5 +1,5 @@
-import { geminiModel } from '@/config/gemini';
-import type { GenerationConfig, PresentationStyle } from '@/types';
+import { getGeminiModel } from '@/config/gemini';
+import type { GenerationConfig, PresentationStyle, PresentationUseCase } from '@/types';
 import { PALETTES } from '@/types';
 
 const STYLE_DESCRIPTIONS: Record<PresentationStyle, string> = {
@@ -29,17 +29,41 @@ const STYLE_DESCRIPTIONS: Record<PresentationStyle, string> = {
     - Dynamic and varied layouts per slide`,
 };
 
-function buildPrompt(
-  text: string,
-  filename: string,
-  config: GenerationConfig
-): string {
+const USE_CASE_INSTRUCTIONS: Record<PresentationUseCase, string> = {
+  general: `
+Standard informative presentation. Be clear, structured, and balanced.`,
+
+  political: `
+This is a POLITICAL COMMUNICATION presentation. Apply these specific rules:
+- Opening slide: strong, emotionally resonant headline and rallying subtitle
+- Use persuasive, direct language — speak to values and identity
+- Include clear CALL TO ACTION slides (what the audience should do/think/support)
+- Highlight achievements, contrasts, and future vision
+- Use rhetorical structures: problem → solution → call to action
+- End with a powerful, memorable closing statement
+- Tone: passionate, confident, inspiring`,
+
+  municipal: `
+This is a MUNICIPAL/INSTITUTIONAL COMMUNICATION for citizens. Apply these specific rules:
+- Opening slide: clear institutional header with municipality name and topic
+- Use plain, accessible language — avoid jargon, be inclusive
+- Structure: context → what was done → how citizens are affected → contacts/next steps
+- Include practical information: dates, numbers, offices, procedures
+- Be transparent about data and sources
+- Tone: formal but approachable, reassuring, service-oriented
+- Last slide: contacts, resources, where to find more info`,
+};
+
+function buildPrompt(text: string, filename: string, config: GenerationConfig): string {
   const palette = PALETTES[config.palette] ?? PALETTES['indigo'];
   const styleDesc = STYLE_DESCRIPTIONS[config.style];
+  const useCaseInstructions = USE_CASE_INSTRUCTIONS[config.useCase];
   const truncatedText = text.length > 40000 ? text.slice(0, 40000) + '\n[...]' : text;
-  const lang = config.language === 'auto' ? 'same language as the document' : config.language === 'it' ? 'Italian' : 'English';
+  const lang = config.language === 'auto'
+    ? 'same language as the document (auto-detect)'
+    : config.language === 'it' ? 'Italian' : 'English';
 
-  return `You are an expert web developer creating a stunning HTML presentation.
+  return `You are an expert web developer and communication specialist creating an HTML presentation.
 
 Generate a complete, self-contained HTML5 presentation using Reveal.js based on the document below.
 
@@ -50,16 +74,19 @@ TECHNICAL REQUIREMENTS:
 - Embedded <style> block for all custom styles
 - Works offline after initial CDN load
 
+USE CASE: ${config.useCase.toUpperCase()}
+${useCaseInstructions}
+
 PRESENTATION STRUCTURE (${config.slideCount} slides ±2):
-- Slide 1: Title slide — main topic + compelling subtitle + author/date
+- Slide 1: Title slide — main topic + subtitle
 - Slides 2 to N-1: Content slides, each covering ONE focused topic
-- Last slide: "Punti Chiave" or "Key Takeaways" — 3-5 bullet points summary
+- Last slide: summary or call to action (based on use case)
 
 CONTENT RULES:
 - Max 5-6 bullet points per slide
-- Use short, punchy phrases (not full sentences)
+- Use short, punchy phrases
 - Bold key numbers, statistics, dates with <strong>
-- Keep slides scannable — no walls of text
+- Keep slides scannable
 - Language: ${lang}
 
 STYLE: ${config.style.toUpperCase()}
@@ -98,15 +125,15 @@ export async function generatePresentation(
   onProgress?.('Preparazione del prompt...');
 
   const prompt = buildPrompt(text, filename, config);
+  const model = getGeminiModel(config.model || 'gemini-2.0-flash');
 
-  onProgress?.('Generazione con Gemini AI...');
+  onProgress?.(`Generazione con ${config.model || 'Gemini'}...`);
 
-  const result = await geminiModel.generateContent(prompt);
+  const result = await model.generateContent(prompt);
   const response = result.response.text();
 
   onProgress?.('Elaborazione risposta...');
 
-  // Strip markdown code blocks if Gemini wraps the HTML
   const cleaned = response
     .replace(/^```html\s*/i, '')
     .replace(/^```\s*/i, '')
