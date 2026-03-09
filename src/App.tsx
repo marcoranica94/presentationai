@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { AccessCodePage } from '@/components/auth/AccessCodePage';
@@ -41,7 +41,7 @@ export default function App() {
   }, [initialize]);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         {/* Route pubblica — nessuna autenticazione richiesta */}
         <Route path="/share/:contentId" element={<SharePage />} />
@@ -64,6 +64,6 @@ export default function App() {
           </AuthGuard>
         } />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
