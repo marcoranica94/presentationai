@@ -11,20 +11,14 @@ import {
   orderBy,
   Timestamp,
 } from 'firebase/firestore';
-import {
-  ref,
-  uploadBytesResumable,
-  getDownloadURL,
-  deleteObject,
-} from 'firebase/storage';
-import { db, storage } from '@/config/firebase';
+import { db } from '@/config/firebase';
 import { parseFile } from '@/lib/fileParser';
 import { generatePresentation } from '@/lib/geminiService';
 import type { Project, GeneratedContent, GenerationConfig } from '@/types';
 
 interface ProjectStore {
   projects: Project[];
-  generations: Record<string, GeneratedContent[]>; // keyed by projectId
+  generations: Record<string, GeneratedContent[]>;
   loading: boolean;
   uploading: boolean;
   uploadProgress: number;
@@ -90,7 +84,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         orderBy('createdAt', 'desc')
       );
       const snap = await getDocs(q);
-      const projects = snap.docs.map((d) => projectFromDoc(d.id, d.data() as Record<string, unknown>));
+      const projects = snap.docs.map((d) =>
+        projectFromDoc(d.id, d.data() as Record<string, unknown>)
+      );
       set({ projects, loading: false });
     } catch (err) {
       set({ error: String(err), loading: false });
@@ -105,7 +101,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         orderBy('createdAt', 'desc')
       );
       const snap = await getDocs(q);
-      const gens = snap.docs.map((d) => genFromDoc(d.id, d.data() as Record<string, unknown>));
+      const gens = snap.docs.map((d) =>
+        genFromDoc(d.id, d.data() as Record<string, unknown>)
+      );
       set((s) => ({ generations: { ...s.generations, [projectId]: gens } }));
     } catch {
       // non-fatal
@@ -115,25 +113,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   uploadProject: async (file, userId) => {
     set({ uploading: true, uploadProgress: 0, error: null });
     try {
-      // 1. Upload to Storage
-      const timestamp = Date.now();
-      const storagePath = `documents/${userId}/${timestamp}-${file.name}`;
-      const storageRef = ref(storage, storagePath);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      // 1. Parse file client-side (no Storage)
+      set({ uploadProgress: 10 });
+      const startParse = Date.now();
+      const { text, metadata } = await parseFile(file);
+      const parseTime = Date.now() - startParse;
+      set({ uploadProgress: 70 });
 
-      await new Promise<void>((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          (snap) => {
-            const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-            set({ uploadProgress: pct });
-          },
-          reject,
-          resolve
-        );
-      });
-
-      // 2. Create Firestore doc
+      // 2. Create Firestore doc with everything
       const now = new Date();
       const projectData = {
         userId,
@@ -143,48 +130,25 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
           name: file.name,
           size: file.size,
           type: file.type,
-          storagePath,
           uploadedAt: now,
         },
-        extractedText: '',
+        extractedText: text.slice(0, 800_000),
         metadata: {
-          wordCount: 0,
-          pageCount: 0,
-          paragraphCount: 0,
-          characterCount: 0,
-          language: 'auto',
+          ...metadata,
           processedAt: now,
-          processingTime: 0,
+          processingTime: parseTime,
         },
-        status: 'processing',
+        status: 'ready',
         createdAt: now,
         updatedAt: now,
       };
+
       const docRef = await addDoc(collection(db, 'projects'), projectData);
-      const projectId = docRef.id;
+      set({ uploadProgress: 100 });
 
-      // 3. Parse client-side
-      const startParse = Date.now();
-      const { text, metadata } = await parseFile(file);
-      const parseTime = Date.now() - startParse;
-
-      // 4. Update Firestore with extracted text
-      const fullMetadata = {
-        ...metadata,
-        processedAt: new Date(),
-        processingTime: parseTime,
-      };
-      await updateDoc(doc(db, 'projects', projectId), {
-        extractedText: text.slice(0, 800_000), // Firestore 1MB limit guard
-        metadata: fullMetadata,
-        status: 'ready',
-        updatedAt: new Date(),
-      });
-
-      // 5. Refresh list
       await get().fetchProjects(userId);
       set({ uploading: false });
-      return projectId;
+      return docRef.id;
     } catch (err) {
       set({ error: String(err), uploading: false });
       return null;
@@ -193,13 +157,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
   deleteProject: async (project) => {
     try {
-      // Delete storage file
-      try {
-        await deleteObject(ref(storage, project.originalFile.storagePath));
-      } catch {
-        // file might not exist
-      }
-      // Delete Firestore doc
       await deleteDoc(doc(db, 'projects', project.id));
       set((s) => ({ projects: s.projects.filter((p) => p.id !== project.id) }));
     } catch (err) {
@@ -217,17 +174,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         (status) => set({ generatingStatus: status })
       );
 
-      set({ generatingStatus: 'Salvataggio su Firebase...' });
+      set({ generatingStatus: 'Salvataggio...' });
 
-      // Upload HTML to Storage
-      const timestamp = Date.now();
-      const storagePath = `generated/${project.userId}/${project.id}/${timestamp}.html`;
-      const storageRef = ref(storage, storagePath);
-      const blob = new Blob([html], { type: 'text/html' });
-      await uploadBytesResumable(storageRef, blob);
-      const downloadUrl = await getDownloadURL(storageRef);
-
-      // Create generated_content doc
+      // Save directly to Firestore (no Storage needed)
       const genData: Omit<GeneratedContent, 'id'> = {
         projectId: project.id,
         userId: project.userId,
@@ -235,14 +184,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         palette: config.palette,
         slideCount: config.slideCount,
         htmlContent: html,
-        storagePath,
-        downloadUrl,
         createdAt: new Date(),
       };
       const genRef = await addDoc(collection(db, 'generated_content'), genData);
       const generated: GeneratedContent = { id: genRef.id, ...genData };
 
-      // Update project usage in local state
+      // Update project htmlGenerated count
+      await updateDoc(doc(db, 'projects', project.id), { updatedAt: new Date() });
+
       set((s) => ({
         generating: false,
         generatingStatus: '',

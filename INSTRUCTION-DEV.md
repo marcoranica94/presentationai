@@ -77,7 +77,6 @@ Il deploy avviene tramite GitHub Actions che legge i valori dai **GitHub Secrets
 | `VITE_FIREBASE_API_KEY` | API key Firebase |
 | `VITE_FIREBASE_AUTH_DOMAIN` | es. `presentationai.firebaseapp.com` |
 | `VITE_FIREBASE_PROJECT_ID` | es. `presentationai` |
-| `VITE_FIREBASE_STORAGE_BUCKET` | es. `presentationai.appspot.com` |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Sender ID Firebase |
 | `VITE_FIREBASE_APP_ID` | App ID Firebase |
 | `VITE_ALLOWED_GITHUB_USERS` | il tuo username GitHub in minuscolo |
@@ -164,10 +163,9 @@ I file `firestore.rules` e `storage.rules` nella root del progetto contengono le
 
 > In alternativa, la prima volta che esegui una query Firestore ti dà un link diretto per creare l'indice nella console.
 
-### Firebase Storage — abilita
-1. **Firebase Console → Storage → Inizia**
-2. Scegli la region (stessa del Firestore)
-3. Seleziona modalità produzione
+
+> **Firebase Storage non è necessario** — file e HTML vengono gestiti
+> interamente tramite Firestore e parsing client-side.
 
 ## Prossimi Sprint
 

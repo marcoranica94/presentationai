@@ -38,7 +38,6 @@ export interface Project {
     name: string;
     size: number;
     type: string;
-    storagePath: string;
     uploadedAt: Date;
   };
   extractedText: string;
@@ -72,8 +71,6 @@ export interface GeneratedContent {
   palette: string;
   slideCount: number;
   htmlContent: string;
-  storagePath: string;
-  downloadUrl: string;
   createdAt: Date;
 }
 
