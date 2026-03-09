@@ -75,8 +75,8 @@ export function GeneratePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Configurazione Presentazione</CardTitle>
-          <CardDescription>Scegli tipo, modello AI, stile, palette e numero di slide</CardDescription>
+          <CardTitle>Configurazione Documento</CardTitle>
+          <CardDescription>Scegli tipo, modello AI, stile, palette e numero di sezioni</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
 
@@ -174,7 +174,7 @@ export function GeneratePage() {
 
           {/* Slide count */}
           <div className="space-y-2">
-            <p className="text-sm font-medium">Numero Slide</p>
+            <p className="text-sm font-medium">Numero Sezioni</p>
             <div className="flex gap-2">
               {SLIDE_COUNTS.map((n) => (
                 <button
@@ -259,7 +259,7 @@ export function GeneratePage() {
                   <span className="font-medium">{STYLES[gen.style].name}</span>
                   <span className="text-muted-foreground mx-1">·</span>
                   <span className="text-muted-foreground">
-                    {PALETTES[gen.palette]?.name} · {gen.slideCount} slide
+                    {PALETTES[gen.palette]?.name} · {gen.slideCount} sezioni
                   </span>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => navigate(`/view/${gen.id}`)}>
