@@ -1,64 +1,35 @@
-import { useState, useRef, useEffect } from 'react';
-import { KeyRound, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { KeyRound, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAuthStore } from '@/stores/authStore';
 
+const MIN_LENGTH = 4;
+
 export function AccessCodePage() {
   const { verifyAccessCode, setAccessCode, isFirstAccess, error, loading, logout, clearError } =
     useAuthStore();
-  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [code, setCode] = useState('');
+  const [showCode, setShowCode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  useEffect(() => {
-    inputRefs.current[0]?.focus();
-  }, []);
-
-  const handleChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    const newCode = [...code];
-    newCode[index] = value.slice(-1);
-    setCode(newCode);
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !code[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    const newCode = [...code];
-    for (let i = 0; i < pasted.length; i++) {
-      newCode[i] = pasted[i];
-    }
-    setCode(newCode);
-    inputRefs.current[Math.min(pasted.length, 5)]?.focus();
-  };
-
-  const handleSubmit = async () => {
-    const fullCode = code.join('');
-    if (fullCode.length !== 6) return;
+    if (code.length < MIN_LENGTH) return;
 
     setSubmitting(true);
     clearError();
 
     if (isFirstAccess) {
-      await setAccessCode(fullCode);
+      await setAccessCode(code);
     } else {
-      await verifyAccessCode(fullCode);
+      await verifyAccessCode(code);
     }
 
     setSubmitting(false);
-    setCode(['', '', '', '', '', '']);
-    inputRefs.current[0]?.focus();
+    setCode('');
   };
 
   return (
@@ -75,8 +46,8 @@ export function AccessCodePage() {
           </h1>
           <p className="text-muted-foreground">
             {isFirstAccess
-              ? 'Scegli un codice a 6 cifre per proteggere il tuo account'
-              : 'Inserisci il tuo codice a 6 cifre'}
+              ? 'Scegli un codice per proteggere il tuo account'
+              : 'Inserisci il tuo codice per continuare'}
           </p>
         </div>
 
@@ -87,54 +58,66 @@ export function AccessCodePage() {
             </CardTitle>
             <CardDescription className="text-center">
               {isFirstAccess
-                ? 'Questo codice sara\' richiesto ad ogni accesso'
-                : 'Inserisci il codice per continuare'}
+                ? `Minimo ${MIN_LENGTH} caratteri — lettere, numeri, simboli`
+                : 'Inserisci il codice scelto al primo accesso'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive text-center">
-                {error}
-              </div>
-            )}
-
-            <div className="flex justify-center gap-2" onPaste={handlePaste}>
-              {code.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(i, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(i, e)}
-                  className="h-14 w-12 rounded-lg border border-input bg-transparent text-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              ))}
-            </div>
-
-            <Button
-              onClick={handleSubmit}
-              disabled={code.join('').length !== 6 || submitting || loading}
-              className="w-full"
-              size="lg"
-            >
-              {submitting ? (
-                <>
-                  <Spinner className="h-4 w-4" />
-                  {isFirstAccess ? 'Salvataggio...' : 'Verifica...'}
-                </>
-              ) : isFirstAccess ? (
-                'Imposta Codice'
-              ) : (
-                'Accedi'
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive text-center">
+                  {error}
+                </div>
               )}
-            </Button>
 
-            <Button variant="ghost" onClick={logout} className="w-full" size="sm">
-              Torna al login
-            </Button>
+              <div className="relative">
+                <Input
+                  type={showCode ? 'text' : 'password'}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder={isFirstAccess ? 'Scegli un codice...' : 'Inserisci il codice...'}
+                  autoFocus
+                  autoComplete="off"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCode((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showCode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {isFirstAccess && code.length > 0 && code.length < MIN_LENGTH && (
+                <p className="text-xs text-muted-foreground">
+                  Ancora {MIN_LENGTH - code.length} caratteri necessari
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                disabled={code.length < MIN_LENGTH || submitting || loading}
+                className="w-full"
+                size="lg"
+              >
+                {submitting ? (
+                  <>
+                    <Spinner className="h-4 w-4" />
+                    {isFirstAccess ? 'Salvataggio...' : 'Verifica...'}
+                  </>
+                ) : isFirstAccess ? (
+                  'Imposta Codice'
+                ) : (
+                  'Accedi'
+                )}
+              </Button>
+
+              <Button type="button" variant="ghost" onClick={logout} className="w-full" size="sm">
+                Torna al login
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
