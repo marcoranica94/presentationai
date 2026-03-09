@@ -71,6 +71,7 @@ export interface GeneratedContent {
   palette: string;
   slideCount: number;
   htmlContent: string;
+  isPublic: boolean;
   createdAt: Date;
 }
 

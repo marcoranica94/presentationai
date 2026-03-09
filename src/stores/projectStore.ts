@@ -184,6 +184,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         palette: config.palette,
         slideCount: config.slideCount,
         htmlContent: html,
+        isPublic: false,
         createdAt: new Date(),
       };
       const genRef = await addDoc(collection(db, 'generated_content'), genData);

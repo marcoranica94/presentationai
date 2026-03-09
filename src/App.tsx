@@ -9,6 +9,7 @@ import { UploadPage } from '@/pages/UploadPage';
 import { ProjectsPage } from '@/pages/ProjectsPage';
 import { GeneratePage } from '@/pages/GeneratePage';
 import { ViewerPage } from '@/pages/ViewerPage';
+import { SharePage } from '@/pages/SharePage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { Spinner } from '@/components/ui/Spinner';
 
@@ -40,20 +41,27 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <AuthGuard>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/upload" element={<UploadPage />} />
-            <Route path="/projects" element={<ProjectsPage />} />
-            <Route path="/generate/:projectId" element={<GeneratePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Route>
-          {/* Viewer fuori dal layout per fullscreen */}
-          <Route path="/view/:contentId" element={<ViewerPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthGuard>
+      <Routes>
+        {/* Route pubblica — nessuna autenticazione richiesta */}
+        <Route path="/share/:contentId" element={<SharePage />} />
+
+        {/* Route protette */}
+        <Route path="*" element={
+          <AuthGuard>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/upload" element={<UploadPage />} />
+                <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/generate/:projectId" element={<GeneratePage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Route>
+              <Route path="/view/:contentId" element={<ViewerPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AuthGuard>
+        } />
+      </Routes>
     </BrowserRouter>
   );
 }
