@@ -122,7 +122,7 @@ export function GeneratePage() {
                     <p className="text-sm font-medium">{m.name}</p>
                     <p className="text-xs text-muted-foreground">{m.description}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground shrink-0 ml-2">{m.rpm} rpm</span>
+                  <span className="text-xs text-muted-foreground shrink-0 ml-2">max {m.rpm}/min</span>
                 </button>
               ))}
             </div>
