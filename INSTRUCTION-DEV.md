@@ -63,31 +63,47 @@ service cloud.firestore {
 > **Piano gratuito Gemini**: 15 RPM, 1 milione di token/minuto, 1500 richieste/giorno.
 > Piu' che sufficiente per uso personale!
 
-## 4. Configura il file .env
+## 4. Aggiungi i Secrets su GitHub (NON serve .env, NON si committano)
 
-Copia `.env.example` in `.env` e riempi tutti i valori:
+Il deploy avviene tramite GitHub Actions che legge i valori dai **GitHub Secrets**.
+
+### Come aggiungere i Secrets
+1. Vai sul tuo repository GitHub: `github.com/tuousername/presentationai`
+2. **Settings** → **Secrets and variables** → **Actions**
+3. Clicca **"New repository secret"** per ciascuno dei seguenti:
+
+| Nome Secret | Valore |
+|-------------|--------|
+| `VITE_FIREBASE_API_KEY` | API key Firebase |
+| `VITE_FIREBASE_AUTH_DOMAIN` | es. `presentationai.firebaseapp.com` |
+| `VITE_FIREBASE_PROJECT_ID` | es. `presentationai` |
+| `VITE_FIREBASE_STORAGE_BUCKET` | es. `presentationai.appspot.com` |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Sender ID Firebase |
+| `VITE_FIREBASE_APP_ID` | App ID Firebase |
+| `VITE_ALLOWED_GITHUB_USERS` | il tuo username GitHub in minuscolo |
+| `VITE_GEMINI_API_KEY` | API key Gemini |
+
+> Una volta salvati, i Secrets non sono piu' visibili (nemmeno a te).
+> GitHub Actions li inietta durante la build senza che finiscano nel codice.
+
+### Abilita GitHub Pages
+1. **Settings** → **Pages**
+2. **Source**: seleziona **"GitHub Actions"**
+3. Salva
+
+Il primo deploy parte automaticamente al prossimo push su `master`.
+L'app sara' disponibile su: `https://tuousername.github.io/presentationai/`
+
+---
+
+## 5. Sviluppo locale (opzionale, solo se vuoi testare in locale)
+
+Per sviluppare in locale crea `.env` (non viene committato, e' nel .gitignore):
 
 ```bash
 cp .env.example .env
+# poi riempi i valori in .env
 ```
-
-Poi modifica `.env`:
-```
-VITE_FIREBASE_API_KEY=AIzaSy...
-VITE_FIREBASE_AUTH_DOMAIN=presentationai.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=presentationai
-VITE_FIREBASE_STORAGE_BUCKET=presentationai.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
-
-VITE_ALLOWED_GITHUB_USERS=tuousername
-
-VITE_GEMINI_API_KEY=AIzaSy...
-```
-
-**IMPORTANTE**: `VITE_ALLOWED_GITHUB_USERS` deve contenere il tuo username GitHub in minuscolo. Solo gli utenti in questa lista potranno accedere.
-
-## 5. Avvia il progetto
 
 ```bash
 npm install
