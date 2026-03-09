@@ -9,13 +9,14 @@ import {
   X,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { useProjectStore } from '@/stores/projectStore';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/upload', icon: Upload, label: 'Nuovo Progetto' },
-  { to: '/projects', icon: FolderOpen, label: 'Progetti' },
-  { to: '/settings', icon: Settings, label: 'Impostazioni' },
+  { to: '/',         icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/upload',   icon: Upload,          label: 'Nuovo Progetto' },
+  { to: '/projects', icon: FolderOpen,      label: 'Progetti', badge: true },
+  { to: '/settings', icon: Settings,        label: 'Impostazioni' },
 ];
 
 interface SidebarProps {
@@ -25,14 +26,12 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
+  const { projects } = useProjectStore();
 
   return (
     <>
       {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />
       )}
 
       <aside
@@ -52,22 +51,30 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <nav className="flex-1 space-y-1 p-3">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {navItems.map(({ to, icon: Icon, label, badge }) => (
             <NavLink
               key={to}
               to={to}
+              end={to === '/'}
               onClick={onClose}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  'flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                   isActive
                     ? 'bg-sidebar-accent text-sidebar-foreground'
                     : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
                 )
               }
             >
-              <Icon className="h-5 w-5" />
-              {label}
+              <span className="flex items-center gap-3">
+                <Icon className="h-5 w-5" />
+                {label}
+              </span>
+              {badge && projects.length > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/20 px-1.5 text-xs font-bold text-primary">
+                  {projects.length}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
