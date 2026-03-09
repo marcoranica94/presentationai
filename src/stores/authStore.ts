@@ -45,11 +45,7 @@ async function loadOrCreateUserDoc(firebaseUser: FirebaseUser): Promise<User> {
   }
 
   const newUser: Omit<User, 'uid'> = {
-    githubUsername: (
-      firebaseUser.providerData[0]?.displayName ||
-      firebaseUser.displayName ||
-      ''
-    ).toLowerCase(),
+    githubUsername: firebaseUser.displayName?.toLowerCase() || '',
     email: firebaseUser.email || '',
     avatarUrl: firebaseUser.photoURL || '',
     accessCodeHash: '',
@@ -113,11 +109,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const result = await signInWithPopup(auth, githubProvider);
-      const githubUsername = (
-        result.user.providerData[0]?.displayName ||
-        result.user.displayName ||
-        ''
-      ).toLowerCase();
+      // GitHub OAuth restituisce lo username nel campo providerData[0].uid
+      // (è il GitHub user ID numerico) oppure in reloadUserInfo.screenName.
+      // Il modo più affidabile è leggere il profilo dall'AdditionalUserInfo.
+      const additionalInfo = result as unknown as { _tokenResponse?: { screenName?: string } };
+      const screenName = additionalInfo._tokenResponse?.screenName || '';
+      const githubUsername = screenName.toLowerCase();
+
+      // Log di debug — rimuovere dopo il primo accesso riuscito
+      console.debug('[auth] GitHub username rilevato:', githubUsername);
+      console.debug('[auth] ALLOWED_USERS:', ALLOWED_USERS);
 
       if (ALLOWED_USERS.length > 0 && !ALLOWED_USERS.includes(githubUsername)) {
         await signOut(auth);
