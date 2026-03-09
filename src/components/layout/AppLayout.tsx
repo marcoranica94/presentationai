@@ -3,17 +3,19 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 
-const pageTitles: Record<string, string> = {
-  '/': 'Dashboard',
-  '/upload': 'Nuovo Progetto',
-  '/projects': 'I Miei Progetti',
-  '/settings': 'Impostazioni',
-};
+function getTitle(pathname: string): string {
+  if (pathname === '/') return 'Dashboard';
+  if (pathname === '/upload') return 'Nuovo Progetto';
+  if (pathname === '/projects') return 'I Miei Progetti';
+  if (pathname === '/settings') return 'Impostazioni';
+  if (pathname.startsWith('/generate/')) return 'Genera Presentazione';
+  return 'PresentationAI';
+}
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const title = pageTitles[location.pathname] || 'PresentationAI';
+  const title = getTitle(location.pathname);
 
   return (
     <div className="flex h-screen overflow-hidden">

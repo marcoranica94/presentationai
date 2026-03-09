@@ -7,6 +7,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { UploadPage } from '@/pages/UploadPage';
 import { ProjectsPage } from '@/pages/ProjectsPage';
+import { GeneratePage } from '@/pages/GeneratePage';
+import { ViewerPage } from '@/pages/ViewerPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { Spinner } from '@/components/ui/Spinner';
 
@@ -21,17 +23,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!firebaseUser) {
-    return <LoginPage />;
-  }
-
-  if (needsAccessCode) {
-    return <AccessCodePage />;
-  }
-
-  if (!user) {
-    return <LoginPage />;
-  }
+  if (!firebaseUser) return <LoginPage />;
+  if (needsAccessCode) return <AccessCodePage />;
+  if (!user) return <LoginPage />;
 
   return <>{children}</>;
 }
@@ -52,8 +46,11 @@ export default function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/upload" element={<UploadPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/generate/:projectId" element={<GeneratePage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
+          {/* Viewer fuori dal layout per fullscreen */}
+          <Route path="/view/:contentId" element={<ViewerPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthGuard>

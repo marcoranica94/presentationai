@@ -145,9 +145,31 @@ src/
 └── main.tsx           # Entry point
 ```
 
+## Regole Firestore e Storage (da applicare manualmente)
+
+I file `firestore.rules` e `storage.rules` nella root del progetto contengono le regole di sicurezza.
+
+### Firestore Rules
+1. **Firebase Console → Firestore → Regole**
+2. Incolla il contenuto di `firestore.rules` → Pubblica
+
+### Storage Rules
+1. **Firebase Console → Storage → Regole**
+2. Incolla il contenuto di `storage.rules` → Pubblica
+
+### Indice Firestore (necessario per le query)
+1. **Firestore → Indici → Crea indice**
+2. Collection: `projects` → Campi: `userId` (asc) + `createdAt` (desc) → Crea
+3. Collection: `generated_content` → Campi: `projectId` (asc) + `createdAt` (desc) → Crea
+
+> In alternativa, la prima volta che esegui una query Firestore ti dà un link diretto per creare l'indice nella console.
+
+### Firebase Storage — abilita
+1. **Firebase Console → Storage → Inizia**
+2. Scegli la region (stessa del Firestore)
+3. Seleziona modalità produzione
+
 ## Prossimi Sprint
 
-- **Sprint 2**: Upload documenti + processing (drag&drop, Firebase Storage, parsing PDF/DOCX)
-- **Sprint 3**: Generazione HTML con Gemini AI
 - **Sprint 4**: Editor visuale (GrapesJS)
 - **Sprint 5**: Export PDF/PNG + Pubblicazione
