@@ -7,6 +7,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { UploadPage } from '@/pages/UploadPage';
 import { ProjectsPage } from '@/pages/ProjectsPage';
+import { PresentationsPage } from '@/pages/PresentationsPage';
 import { GeneratePage } from '@/pages/GeneratePage';
 import { ViewerPage } from '@/pages/ViewerPage';
 import { EditorPage } from '@/pages/EditorPage';
@@ -55,6 +56,7 @@ export default function App() {
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/upload" element={<UploadPage />} />
                 <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/presentations" element={<PresentationsPage />} />
                 <Route path="/generate/:projectId" element={<GeneratePage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>

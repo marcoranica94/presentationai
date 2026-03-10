@@ -6,6 +6,7 @@ import {
   Settings,
   LogOut,
   Presentation,
+  BarChart2,
   X,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
@@ -13,10 +14,11 @@ import { useProjectStore } from '@/stores/projectStore';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { to: '/',         icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/upload',   icon: Upload,          label: 'Nuovo Progetto' },
-  { to: '/projects', icon: FolderOpen,      label: 'Progetti', badge: true },
-  { to: '/settings', icon: Settings,        label: 'Impostazioni' },
+  { to: '/',               icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/upload',         icon: Upload,          label: 'Nuovo Progetto' },
+  { to: '/projects',       icon: FolderOpen,      label: 'Progetti', badge: true },
+  { to: '/presentations',  icon: BarChart2,        label: 'Presentazioni' },
+  { to: '/settings',       icon: Settings,        label: 'Impostazioni' },
 ];
 
 interface SidebarProps {

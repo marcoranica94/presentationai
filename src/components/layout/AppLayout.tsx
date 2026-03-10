@@ -7,6 +7,7 @@ function getTitle(pathname: string): string {
   if (pathname === '/') return 'Dashboard';
   if (pathname === '/upload') return 'Nuovo Progetto';
   if (pathname === '/projects') return 'I Miei Progetti';
+  if (pathname === '/presentations') return 'Presentazioni';
   if (pathname === '/settings') return 'Impostazioni';
   if (pathname.startsWith('/generate/')) return 'Genera Presentazione';
   return 'PresentationAI';

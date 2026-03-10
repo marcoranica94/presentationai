@@ -28,8 +28,10 @@ interface ProjectStore {
 
   fetchProjects: (userId: string) => Promise<void>;
   fetchGenerations: (projectId: string) => Promise<void>;
+  fetchAllGenerations: (userId: string) => Promise<GeneratedContent[]>;
   uploadProject: (file: File, userId: string) => Promise<string | null>;
   deleteProject: (project: Project) => Promise<void>;
+  deleteGeneration: (id: string) => Promise<void>;
   generateHTML: (project: Project, config: GenerationConfig) => Promise<GeneratedContent | null>;
   clearError: () => void;
 }
@@ -153,6 +155,24 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       set({ error: String(err), uploading: false });
       return null;
     }
+  },
+
+  fetchAllGenerations: async (userId) => {
+    try {
+      const q = query(
+        collection(db, 'generated_content'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => genFromDoc(d.id, d.data() as Record<string, unknown>));
+    } catch {
+      return [];
+    }
+  },
+
+  deleteGeneration: async (id) => {
+    await deleteDoc(doc(db, 'generated_content', id));
   },
 
   deleteProject: async (project) => {
