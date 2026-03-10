@@ -2,25 +2,76 @@ import { getGeminiModel } from '@/config/gemini';
 import type { GenerationConfig, PresentationUseCase } from '@/types';
 import { PALETTES } from '@/types';
 
-const USE_CASE_INSTRUCTIONS: Record<PresentationUseCase, string> = {
-  general: `Standard informative document. Clear, structured, balanced. Prioritize data over rhetoric.`,
-  political: `
-POLITICAL COMMUNICATION:
-- Hero: powerful headline + emotionally resonant subtitle
-- Persuasive, direct language — values and identity
-- At least one CALL TO ACTION section with clear ask
-- Achievements with numbers, before/after contrasts, future vision
-- Structure: problem → solution → call to action → closing
-- Tone: passionate, confident, inspiring`,
-  municipal: `
-MUNICIPAL/INSTITUTIONAL:
-- Hero: institution name + topic clearly stated
-- Plain accessible language, no jargon
-- Structure: context → what was done → impact on citizens → contacts/next steps
-- Practical info: dates, numbers, offices, procedures
-- Tone: formal but approachable, service-oriented
-- Last section: contacts, resources, how to find more info`,
+// Narrative arc per use case: defines chapter label vocabulary and emotional rhythm
+const USE_CASE_NARRATIVE: Record<PresentationUseCase, {
+  labels: string[];
+  heroRole: string;
+  arc: string;
+  tone: string;
+}> = {
+  general: {
+    labels: ['IL CONTESTO', 'I NUMERI', 'LA SCOPERTA', 'L\'ANALISI', 'L\'IMPATTO', 'LE PRIORITÀ', 'IL PERCORSO', 'LA RISPOSTA', 'LA VISIONE', 'IL PASSO SUCCESSIVO'],
+    heroRole: 'Establish the ONE key finding that makes this document worth reading.',
+    arc: 'Context → Evidence → Analysis → Priorities → Recommendations → Next Steps',
+    tone: 'Authoritative, data-driven, precise. Every claim backed by a number.',
+  },
+  political: {
+    labels: ['LA SITUAZIONE', 'I RISULTATI', 'IL CAMBIAMENTO', 'I DATI', 'LA VISIONE', 'L\'IMPEGNO', 'I PROSSIMI PASSI', 'LA CHIAMATA'],
+    heroRole: 'Open with the boldest achievement or the sharpest contrast between past and future.',
+    arc: 'Problem (current state) → Achievements (what changed) → Vision (what could be) → Call to Action',
+    tone: 'Passionate, direct, values-driven. Use contrast: before/after, old/new, problem/solution.',
+  },
+  municipal: {
+    labels: ['IL SERVIZIO', 'I NUMERI', 'COSA ABBIAMO FATTO', 'L\'IMPATTO', 'IL PROGETTO', 'LE FASI', 'I COSTI', 'I CONTATTI'],
+    heroRole: 'State the purpose and direct benefit to citizens upfront.',
+    arc: 'What it is → What was done → Impact on citizens → How to access → Contacts',
+    tone: 'Clear, accessible, service-oriented. Lead with citizen benefit, not institutional process.',
+  },
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TYPOGRAPHY SYSTEM — different per style to avoid same-every-time look
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface FontSystem {
+  googleFontsUrl: string;
+  headingFont: string;
+  bodyFont: string;
+  monoFont?: string;
+}
+
+function getTypographySystem(style: string): FontSystem {
+  // Each style gets a completely distinct type personality
+  const systems: Record<string, FontSystem> = {
+    minimal: {
+      googleFontsUrl: "https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,700;0,900;1,300&family=DM+Sans:wght@300;400;500;600&display=swap",
+      headingFont: "'Fraunces', Georgia, serif",
+      bodyFont: "'DM Sans', system-ui, sans-serif",
+    },
+    professional: {
+      googleFontsUrl: "https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Instrument+Sans:wght@300;400;500;600&display=swap",
+      headingFont: "'Syne', sans-serif",
+      bodyFont: "'Instrument Sans', sans-serif",
+    },
+    dark: {
+      googleFontsUrl: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500&display=swap",
+      headingFont: "'Bricolage Grotesque', sans-serif",
+      bodyFont: "'Space Grotesk', sans-serif",
+    },
+    vibrant: {
+      googleFontsUrl: "https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;700;800;900&family=Satoshi:wght@300;400;500&display=swap",
+      headingFont: "'Cabinet Grotesk', sans-serif",
+      bodyFont: "'Satoshi', sans-serif",
+    },
+    // fallback for any other style
+    default: {
+      googleFontsUrl: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Mulish:wght@300;400;500;600&display=swap",
+      headingFont: "'Playfair Display', Georgia, serif",
+      bodyFont: "'Mulish', sans-serif",
+    },
+  };
+  return systems[style] ?? systems.default;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PHASE 1: DATA EXTRACTION
@@ -113,7 +164,8 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanation):
 
 function buildDesignSystem(
   palette: { primary: string; secondary: string; bg: string; text: string },
-  style: string
+  style: string,
+  fonts: FontSystem
 ): string {
   const isLight = style === 'minimal' || style === 'professional';
 
@@ -131,8 +183,8 @@ function buildDesignSystem(
   --card-border-dark: rgba(255,255,255,0.12);
   --accent: ${palette.primary};
   --accent2: ${palette.secondary};
-  --heading-font: 'Plus Jakarta Sans', sans-serif;
-  --body-font: 'Inter', sans-serif;` : `
+  --heading-font: ${fonts.headingFont};
+  --body-font: ${fonts.bodyFont};` : `
   --bg-base: ${palette.bg};
   --bg-alt: color-mix(in srgb, ${palette.bg} 85%, ${palette.primary} 15%);
   --bg-dark: ${palette.bg};
@@ -146,8 +198,8 @@ function buildDesignSystem(
   --card-border-dark: rgba(255,255,255,0.14);
   --accent: ${palette.primary};
   --accent2: ${palette.secondary};
-  --heading-font: 'Plus Jakarta Sans', sans-serif;
-  --body-font: 'Inter', sans-serif;`;
+  --heading-font: ${fonts.headingFont};
+  --body-font: ${fonts.bodyFont};`;
 
   return `
 :root { ${vars} }
@@ -456,82 +508,130 @@ blockquote::before { content:'\u201C'; font-size:4.5em; color:rgba(255,255,255,0
 // SECTION PLAN
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildSectionPlan(count: number): string {
-  const plans: Record<number, string[]> = {
-    6: [
-      '1. HERO — title, entity, key tags, 1-line summary',
-      '2. STATS — 4 big numbers from key_stats with units and context',
-      '3. CONTENT + FEATURE LIST — main topic with all key_points',
-      '4. CHART — real data from charts_data (doughnut or bar)',
-      '5. PRIORITY ROWS or CARDS — use priority_or_risk_items or process_steps',
-      '6. CLOSING — conclusions, contacts, final call to action',
-    ],
-    8: [
-      '1. HERO',
-      '2. STATS — 4-5 numbers',
-      '3. CONTENT A + feature list — topic 1',
-      '4. CHART 1 — pie or doughnut from charts_data[0]',
-      '5. CARDS — 3-4 cards from main topics or benefits',
-      '6. CHART 2 — bar chart from charts_data[1] or different view',
-      '7. HIGHLIGHT — key quote or key finding',
-      '8. CLOSING',
-    ],
-    10: [
-      '1. HERO',
-      '2. STATS — 5 numbers',
-      '3. CONTENT A + feature list',
-      '4. CHART 1',
-      '5. CARDS (3)',
-      '6. PRIORITY ROWS — use all priority_or_risk_items',
-      '7. CHART 2',
-      '8. TWO-COL + info boxes — investment, rules',
-      '9. HIGHLIGHT quote',
-      '10. CLOSING',
-    ],
-    12: [
-      '1. HERO',
-      '2. STATS',
-      '3. CONTENT A + feature list',
-      '4. CHART 1 (pie/doughnut)',
-      '5. CARDS (3-4)',
-      '6. CONTENT B + feature list — second main topic',
-      '7. CHART 2 (bar horizontal)',
-      '8. PRIORITY ROWS — full list',
-      '9. TWO-COL + info boxes — investment costs + benefits',
-      '10. RULE CARDS or TIMELINE',
-      '11. HIGHLIGHT quote',
-      '12. CLOSING',
-    ],
-    15: [
-      '1. HERO',
-      '2. STATS (5 numbers)',
-      '3. CONTENT A + feature list',
-      '4. CHART 1 (pie)',
-      '5. CARDS (3)',
-      '6. CONTENT B + feature list',
-      '7. CHART 2 (bar horizontal)',
-      '8. PRIORITY ROWS',
-      '9. TWO-COL + info boxes',
-      '10. PROCESS FLOW — use process_steps',
-      '11. TIMELINE or RULE CARDS',
-      '12. CHART 3 (line or second doughnut)',
-      '13. CONTENT C — benefits/outcomes with feature list',
-      '14. HIGHLIGHT quote',
-      '15. CLOSING',
-    ],
-  };
+// Narrative-driven section plan: each section has a PURPOSE and CONTENT TYPE
+// Titles are ASSERTIONS (conclusions with data), NOT labels
+function buildSectionPlan(count: number, useCase: PresentationUseCase): string {
+  const narrative = USE_CASE_NARRATIVE[useCase];
 
-  const base = plans[count] ?? plans[10];
-  if (base) return base.join('\n');
+  // Core narrative skeleton — always present
+  const core = [
+    `1. HERO
+   Purpose: ${narrative.heroRole}
+   Title: The single most important conclusion from the document, with the biggest number. Example: "Titolo Audace con Il Numero Più Importante"
+   Content: hero-badge (entity), gradient title, 2-sentence body with 2+ key facts, tags from data
+   Chapter label: [first label from the narrative arc — e.g. "LA SFIDA" or "IL PATRIMONIO"]`,
 
-  const dynamic: string[] = ['1. HERO', '2. STATS'];
-  const types = ['CONTENT + feature list', 'CHART (real data)', 'CARDS (3)', 'PRIORITY ROWS', 'TWO-COL + info boxes', 'PROCESS FLOW', 'TIMELINE'];
-  for (let i = 3; i <= count - 2; i++) {
-    dynamic.push(`${i}. ${types[(i - 3) % types.length]}`);
+    `2. STATS GRID
+   Purpose: Shock the audience with the scale of what's at stake.
+   Title: Not "Numeri Chiave" — write the CONCLUSION the numbers prove. E.g.: "Un Patrimonio che Vale Più di Quanto Pensiamo"
+   Content: Use ALL key_stats entries. Each stat: big gradient number + unit + 1-line context that explains WHY it matters.
+   Chapter label: [narrative label for this phase, e.g. "I NUMERI CHE CONTANO"]`,
+
+    `3. FIRST CONTENT SECTION + FEATURE LIST
+   Purpose: Establish the main topic with the deepest insight from main_topics[0].
+   Title: The KEY FINDING of this topic as a conclusion sentence. E.g.: "Il 31% delle Specie Domina il Verde Cittadino" — never "Analisi della Vegetazione"
+   Content: two-col layout — left: assertion paragraph (2 sentences, 2+ numbers) + feature list where each bullet = BOLD FACT — explanation; right: chart OR info visual
+   Chapter label: [narrative label, e.g. "LA SCOPERTA"]`,
+
+    `4. CHART 1 (data visualization)
+   Purpose: Visual proof of the most important distribution or comparison.
+   Title: The insight the chart proves. E.g.: "Tre Specie Coprono il 60% del Verde — Un Rischio Sistemico" — never "Distribuzione Dati"
+   Content: two-col — left: 3-5 key insight bullets from chart data; right: Chart.js canvas (doughnut or pie from charts_data[0])
+   Chapter label: [e.g. "L'EVIDENZA"]`,
+  ];
+
+  const middle6: string[] = [
+    `5. CARDS (3-4)
+   Purpose: Break down the main topics or benefits into memorable takeaways.
+   Title: The overarching conclusion they all share. E.g.: "Tre Interventi Cambieranno la Città nei Prossimi 5 Anni"
+   Content: 3-4 cards, each with: icon, bold title that IS the takeaway, body with specific number + consequence
+   Chapter label: [e.g. "LE SOLUZIONI" or "I BENEFICI"]`,
+
+    `6. PRIORITY ROWS
+   Purpose: Show the urgency ranking — what must happen first and why.
+   Title: The stakes sentence. E.g.: "38 Alberi Rischiano di Cadere: Serve Agire Ora" — never "Analisi del Rischio"
+   Content: All priority_or_risk_items — each row: rank number, bold label with count+%, description of consequence
+   Chapter label: [e.g. "LE URGENZE"]`,
+
+    `7. CHART 2 (different type from Chart 1)
+   Purpose: Show a second dimension of the data — comparison, ranking, or trend.
+   Title: The conclusion this chart proves. E.g.: "Le Zone Nord Concentrano il 70% degli Interventi Urgenti"
+   Content: horizontal bar chart or line chart from charts_data[1] — left: analytical paragraph; right: canvas
+   Chapter label: [e.g. "IL CONFRONTO"]`,
+
+    `8. TWO-COL + INFO BOXES
+   Purpose: Reveal the concrete investment and rules behind the plan.
+   Title: The bottom-line takeaway. E.g.: "€ 46.340 per Salvare 2.163 Alberi: un Investimento che Si Ripaga"
+   Content: left: feature list from benefits_outcomes or rules_principles; right: 2-3 info-boxes with exact investment_costs amounts
+   Chapter label: [e.g. "IL PIANO"]`,
+
+    `9. PROCESS FLOW
+   Purpose: Show HOW it works — the step-by-step path to results.
+   Title: The outcome of the process. E.g.: "In 4 Fasi: dal Censimento alla Città Sicura"
+   Content: process-flow component with all process_steps — each step: icon, title that IS the result of that step, body with specific data
+   Chapter label: [e.g. "IL METODO"]`,
+
+    `10. TIMELINE or RULE CARDS
+   Purpose: Show the historical path or the governing principles.
+   Title: The meaning of the timeline or rules. E.g.: "Dal 2019 al 2024: Come è Cambiata la Città" OR "La Regola 10-20-30: Biodiversità per Legge"
+   Content: timeline items from timeline_events OR rule-cards from rules_principles
+   Chapter label: [e.g. "IL PERCORSO" or "LE REGOLE"]`,
+  ];
+
+  const highlight = `[N-1]. HIGHLIGHT — KEY MESSAGE MOMENT
+   Purpose: The emotional peak — the ONE thing the audience must remember.
+   Title: (no section title here — just the blockquote)
+   Content: section-highlight (gradient bg) + blockquote with the most powerful quote from key_quotes OR a constructed summary sentence that is THE ARROW: the single key takeaway of the entire presentation
+   Chapter label: "IL MESSAGGIO"`;
+
+  const closing = `[N]. CLOSING + CONTACTS
+   Purpose: Turn understanding into action — what should the audience do next?
+   Title: A forward-looking call. E.g.: "Il Verde Urbano non Aspetta: Ecco i Prossimi Passi" — never just "Conclusioni"
+   Content: 2-sentence summary using conclusions array (specific facts only) + contact-grid with all contacts fields
+   Chapter label: [e.g. "IL PROSSIMO PASSO"]`;
+
+  const sections: string[] = [...core];
+
+  if (count <= 6) {
+    // Squeeze: combine some sections
+    sections.push(middle6[0]); // CARDS
+    sections.push(middle6[1]); // PRIORITY ROWS
+    sections.push(highlight.replace('[N-1]', '5'));
+    sections.push(closing.replace('[N]', '6'));
+  } else if (count <= 8) {
+    sections.push(middle6[0]); // CARDS
+    sections.push(middle6[2]); // CHART 2
+    sections.push(middle6[1]); // PRIORITY ROWS
+    sections.push(highlight.replace('[N-1]', '7'));
+    sections.push(closing.replace('[N]', '8'));
+  } else if (count <= 10) {
+    sections.push(middle6[0]); // CARDS
+    sections.push(middle6[1]); // PRIORITY ROWS
+    sections.push(middle6[2]); // CHART 2
+    sections.push(middle6[3]); // TWO-COL
+    sections.push(highlight.replace('[N-1]', '9'));
+    sections.push(closing.replace('[N]', '10'));
+  } else if (count <= 12) {
+    sections.push(middle6[0]); // CARDS
+    sections.push(middle6[1]); // PRIORITY ROWS
+    sections.push(middle6[2]); // CHART 2
+    sections.push(middle6[3]); // TWO-COL
+    sections.push(middle6[5]); // TIMELINE or RULE CARDS
+    sections.push(middle6[4]); // PROCESS FLOW
+    sections.push(highlight.replace('[N-1]', '11'));
+    sections.push(closing.replace('[N]', '12'));
+  } else {
+    // 15+: use all middle sections
+    sections.push(...middle6);
+    // Fill remaining slots with extra content sections
+    for (let i = core.length + middle6.length + 1; i <= count - 2; i++) {
+      sections.push(`${i}. CONTENT SECTION — Use remaining main_topics or additional_lists not yet covered. Same rules: title = conclusion, bullets = bold fact → explanation.`);
+    }
+    sections.push(highlight.replace('[N-1]', `${count - 1}`));
+    sections.push(closing.replace('[N]', `${count}`));
   }
-  dynamic.push(`${count - 1}. HIGHLIGHT quote`);
-  dynamic.push(`${count}. CLOSING`);
-  return dynamic.join('\n');
+
+  return sections.map((s, i) => (s.startsWith(`${i + 1}.`) ? s : `${i + 1}. ${s.replace(/^\[?\d+\]?\.?\s*/, '')}`)).join('\n\n');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -545,62 +645,121 @@ function buildHtmlPrompt(
   extractedData: string
 ): string {
   const palette = PALETTES[config.palette] ?? PALETTES['indigo'];
-  const useCaseInstructions = USE_CASE_INSTRUCTIONS[config.useCase];
+  const narrative = USE_CASE_NARRATIVE[config.useCase];
   const truncatedText = text.length > 30000 ? text.slice(0, 30000) + '\n[...]' : text;
   const lang = config.language === 'auto'
     ? 'same language as the document (auto-detect)'
     : config.language === 'it' ? 'Italian' : 'English';
 
-  const css = buildDesignSystem(palette, config.style);
+  const fonts = getTypographySystem(config.style);
+  const css = buildDesignSystem(palette, config.style, fonts);
   const isLight = config.style === 'minimal' || config.style === 'professional';
   const defaultSection = isLight ? 'section-white' : 'section-dark';
 
   const minCharts = config.slideCount >= 8 ? 3 : config.slideCount >= 6 ? 2 : 1;
+  const labelColor = isLight ? '#0f1e35' : palette.text;
+  const gridColor = isLight ? '#e5e7eb' : 'rgba(255,255,255,0.08)';
+  const tickColor = isLight ? '#5a6a7e' : 'rgba(255,255,255,0.6)';
 
-  return `You are a world-class information designer. Create a premium, data-dense scrollable HTML presentation.
-Think: award-winning annual report meets Gamma.app — packed with real data, beautiful typography, smooth animations.
-
-⚠️ SECTION COUNT: EXACTLY ${config.slideCount} <section> elements. Count them. Non-negotiable.
-⚠️ CHARTS: At least ${minCharts} Chart.js chart(s) with REAL data from the EXTRACTED DATA below.
-⚠️ CONTENT DENSITY: Every sentence must contain a specific fact, number, or name from the document. NO filler.
-
-LANGUAGE: ${lang}
-USE CASE: ${config.useCase.toUpperCase()}
-${useCaseInstructions}
+  return `You are a world-class information designer and narrative strategist.
+Create a premium, data-dense scrollable HTML presentation that tells a STORY — not just displays data.
+Think: award-winning annual report × Gamma.app × NYT data journalism. Real data, bold assertions, emotional arc.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EXTRACTED DATA (USE ALL OF THIS IN THE PRESENTATION)
+HARD CONSTRAINTS — VIOLATION = FAILURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ SECTIONS: EXACTLY ${config.slideCount} <section class="section ..."> elements. Count before outputting.
+⚠️ CHARTS: At least ${minCharts} Chart.js chart(s) using REAL numbers from extracted data.
+⚠️ CONTENT: Every sentence must contain a specific fact, number, or name. ZERO filler.
+⚠️ TITLES: Every section title must be a CONCLUSION/ASSERTION — never a generic label.
+
+LANGUAGE: ${lang}
+USE CASE: ${config.useCase.toUpperCase()} — Narrative tone: ${narrative.tone}
+NARRATIVE ARC: ${narrative.arc}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXTRACTED DATA (USE ALL OF THIS — NONE CAN BE SKIPPED)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${extractedData}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-MANDATORY DATA USAGE:
-- key_stats → Use ALL in the STATS section (section 2). Every single one.
-- charts_data → Use each chart object to build a real Chart.js visualization. Use exact labels and values.
-- main_topics → Each topic's key_points must appear as content bullets in the relevant sections.
-- priority_or_risk_items → Use ALL in a PRIORITY ROWS section. Show count, percentage, label.
-- process_steps → Use in a PROCESS FLOW section.
-- rules_principles → Use in a RULE CARDS section.
-- benefits_outcomes → Use in a CARDS or feature list section.
-- investment_costs → Show in an INFO BOX with the exact amounts.
-- timeline_events → Use in a TIMELINE section if ≥3 events exist.
-- key_quotes → Use the best one in the HIGHLIGHT section.
-- contacts → Use in the CLOSING section.
+STEP 0 — BEFORE WRITING ANY HTML, DEFINE YOUR NARRATIVE DNA:
+(Think this through internally — it shapes every title and section)
 
-WRITING RULES (strictly follow):
-- Headlines: MAX 6 words. Punchy, specific, data-driven. Example: "2.163 Alberi. Un Patrimonio Vivo."
-- Body text: MAX 2 sentences per paragraph. Dense with facts. Use exact numbers.
-- Bullets: always start with <strong>bold number or name</strong> — then explanation.
-- NEVER write: "This section covers...", "Overview of...", "We will examine..."
-- EVERY bullet point must contain a specific fact from the document.
-- Stats must always show unit + context: "36,6 m²/ab — doppio della media EU"
+THE ARROW (the one thing the audience must remember):
+→ Extract the single most important conclusion from the data. Write it as: "[Entity] [verb] [specific number/outcome]."
+→ This arrow will appear as the HIGHLIGHT blockquote in section N-1.
 
-SECTION PLAN:
-${buildSectionPlan(config.slideCount)}
+THE CONTRAST (current state vs. ideal state):
+→ What is the problem or gap revealed by this document?
+→ What does the future look like if the recommendations are followed?
+→ Weave this contrast through the first 3 sections.
+
+NARRATIVE LABELS (chapter-label text for each section):
+→ Choose from: ${narrative.labels.map(l => `"${l}"`).join(', ')}
+→ Each label must describe WHERE we are in the story, not just the data type.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TITLE RULES — READ CAREFULLY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-USE THIS HTML SHELL:
+Every section title (h1, h2) must be a TAKEAWAY — the conclusion of that section stated as a fact.
+
+❌ BAD (generic labels — FORBIDDEN):
+- "Numeri Chiave" / "Key Numbers"
+- "Analisi del Rischio" / "Risk Analysis"
+- "Distribuzione Dati" / "Data Overview"
+- "Conclusioni" / "Conclusions"
+- "Come Funziona" / "How It Works"
+
+✅ GOOD (assertions with data):
+- "2.163 Alberi Producono 8.500 Tonnellate di CO₂ l'Anno"
+- "38 Alberi Rischiano di Cadere: Serve Intervenire Subito"
+- "Il 60% del Verde È Concentrato in 3 Specie — Un Rischio Sistemico"
+- "Tre Fasi per Mettere in Sicurezza la Città Entro il 2026"
+- "€ 46.340 Investiti Ora Evitano Danni da Milioni"
+
+Rule: if the title could apply to ANY document, rewrite it. Titles must be UNIQUE to this specific data.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTENT DENSITY RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ASSERTION-EVIDENCE structure for every section:
+1. ASSERTION: The section title IS the conclusion (assertion). Bold, specific, with a number.
+2. EVIDENCE: The body text + visual prove the assertion with supporting data.
+3. FOCAL POINT: Every section has ONE dominant element the eye goes to first (huge stat, bold quote, chart).
+
+Writing rules:
+- Body text: MAX 2 sentences per paragraph. Dense with facts. Exact numbers always.
+- Bullets: <strong>Bold specific fact or number</strong> — consequence or explanation.
+- Stats: always show unit + context: "36,6 m²/ab — doppio della media UE"
+- Cards: title = the takeaway conclusion; body = the proof with a specific number.
+- FORBIDDEN phrases: "This section covers", "Overview of", "We will examine", "In questa sezione", "Come possiamo vedere"
+
+MANDATORY DATA MAPPING:
+- key_stats → STATS GRID section: ALL entries, each with gradient number + unit + context of WHY it matters
+- charts_data → Chart.js: each entry gets its own chart canvas with EXACT labels and values from the JSON
+- main_topics → Content sections: each key_point becomes one feature-list bullet (bold fact → explanation)
+- priority_or_risk_items → PRIORITY ROWS: ALL entries with rank, count, percentage, consequence
+- process_steps → PROCESS FLOW: each step title = the RESULT of that step (not just its name)
+- rules_principles → RULE CARDS: value large, label below, description = why this threshold matters
+- benefits_outcomes → CARDS or feature list: each as a bold outcome with a measurable number
+- investment_costs → INFO BOX: exact amounts, breakdown, ROI if available
+- timeline_events → TIMELINE: if ≥3 events, use them in chronological order
+- key_quotes → HIGHLIGHT blockquote: use the most powerful one as THE ARROW moment
+- contacts → CLOSING contact-grid: all available fields
+- conclusions → CLOSING body text: 2 sentences, specific facts from conclusions array
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION PLAN (${config.slideCount} sections — each with purpose + content type)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${buildSectionPlan(config.slideCount, config.useCase)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HTML SHELL (use exactly this structure)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 <!DOCTYPE html>
 <html lang="it">
@@ -609,7 +768,7 @@ USE THIS HTML SHELL:
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>[DOCUMENT TITLE]</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="${fonts.googleFontsUrl}" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/material-icons@1.13.12/iconfont/material-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
@@ -622,7 +781,7 @@ ${css}
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // AOS
+  // Scroll animations
   const obs = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) e.target.classList.add('aos-animate');
   }), { threshold: 0.08 });
@@ -636,61 +795,66 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }), { threshold: 0.3 });
   document.querySelectorAll('.progress-item').forEach(el => barObs.observe(el));
-});
 
-// [CHART.JS INITIALIZATIONS HERE]
+  // [ALL CHART.JS INITIALIZATIONS HERE — one per charts_data entry]
+});
 </script>
 </body>
 </html>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPONENT REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-COMPONENT REFERENCE:
-
-### HERO
+### HERO — The hook. Opens with the biggest, boldest claim.
 <section class="section ${defaultSection} hero">
   <div class="section-inner">
-    <div class="hero-badge"><span class="material-icons" style="font-size:0.9em">location_city</span> ENTITY NAME</div>
-    <h1 class="section-title"><span class="gradient">Main Title</span><br>Subtitle Here</h1>
-    <p class="section-body">Compelling 1-2 sentences with key facts from summary.</p>
-    <div class="tags"><span class="tag">Tag 1</span><span class="tag">Tag 2</span><span class="tag">Tag 3</span></div>
+    <div class="hero-badge"><span class="material-icons" style="font-size:0.9em">eco</span> ENTITY NAME</div>
+    <!-- Title IS the arrow — the one key message. Make it unforgettable. -->
+    <h1 class="section-title"><span class="gradient">[Key insight with biggest number]</span><br>[Supporting fact or contrast]</h1>
+    <p class="section-body">[2 sentences. Each sentence must contain a specific number or named fact from summary.]</p>
+    <div class="tags"><span class="tag">[tag from tags array]</span><span class="tag">[tag]</span><span class="tag">[tag]</span></div>
   </div>
 </section>
 
-### STATS (use ALL key_stats entries)
+### STATS GRID — Scale shock. Every stat shows WHY it matters.
 <section class="section section-white">
   <div class="section-inner">
-    <div class="chapter-label">Numeri Chiave</div>
-    <h2 class="section-title">Il Patrimonio <span class="accent">in Cifre</span></h2>
-    <p class="section-body">Context sentence with 1-2 most important numbers.</p>
+    <div class="chapter-label">[NARRATIVE LABEL e.g. "I NUMERI CHE CAMBIANO TUTTO"]</div>
+    <!-- Title = the conclusion these numbers prove together -->
+    <h2 class="section-title">[Assertion title with key number] <span class="accent">[key word]</span></h2>
+    <p class="section-body">[1-2 sentences: what do these numbers collectively mean? What is the implication?]</p>
     <div class="stats-grid" data-aos="zoom-in">
       <div class="stat-item">
         <span class="stat-number">2.163</span>
         <div class="stat-label">Alberi censiti</div>
-        <div class="stat-desc">Intero territorio comunale</div>
+        <!-- Context explains WHY this number matters — not just what it is -->
+        <div class="stat-desc">36,6 m² per abitante — doppio media UE</div>
       </div>
-      <!-- REPEAT FOR EVERY key_stats ENTRY -->
+      <!-- ONE STAT-ITEM PER key_stats ENTRY — ALL entries, no exceptions -->
     </div>
   </div>
 </section>
 
-### CHART (real data from charts_data)
+### CHART SECTION — Visual proof of the key distribution.
 <section class="section section-white">
   <div class="section-inner">
-    <div class="chapter-label">Distribuzione Dati</div>
-    <h2 class="section-title">Chart Title <span class="accent">Here</span></h2>
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <!-- Title = the insight THIS SPECIFIC chart proves -->
+    <h2 class="section-title">[What this chart reveals] <span class="accent">[key number]</span></h2>
     <div class="two-col" style="align-items:center">
       <div data-aos="fade-right">
-        <p class="section-body">Analytical sentence about what the data shows.</p>
+        <!-- Assertion paragraph: state the conclusion before showing proof -->
+        <p class="section-body">[2 sentences: the analytical conclusion drawn from this chart's data.]</p>
         <ul class="feature-list">
-          <li><strong>31,07%</strong> — Tilia spp., specie dominante</li>
-          <li><strong>20,11%</strong> — Acer spp., secondo genere</li>
-          <!-- 3-5 key insights from the chart data -->
+          <li><strong>[31,07%]</strong> — [Tilia spp.: specific consequence or meaning]</li>
+          <li><strong>[20,11%]</strong> — [Acer spp.: specific consequence]</li>
+          <!-- 3-5 bullets, each with exact chart label+value as the BOLD part -->
         </ul>
       </div>
       <div data-aos="fade-left">
         <div class="chart-wrapper">
-          <div class="chart-subtitle">COMPOSIZIONE SPECIE</div>
+          <div class="chart-subtitle">[CHART TITLE IN CAPS]</div>
           <canvas id="chart1" height="280"></canvas>
         </div>
       </div>
@@ -698,83 +862,84 @@ COMPONENT REFERENCE:
   </div>
 </section>
 
-### CARDS
+### CARDS — Break down complex info into memorable takeaways.
 <section class="section section-dark">
   <div class="section-inner">
-    <div class="chapter-label">Category Label</div>
-    <h2 class="section-title">Cards <span class="accent">Section</span></h2>
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <!-- Title = the overarching conclusion all cards together prove -->
+    <h2 class="section-title">[What these N things share as a conclusion] <span class="accent">[key word]</span></h2>
     <div class="cards-grid">
       <div class="card" data-aos="fade-up" data-aos-delay="0">
         <span class="card-icon"><span class="material-icons" style="color:var(--accent)">eco</span></span>
-        <div class="card-title">Card Title with Data</div>
-        <div class="card-body"><strong>Specific number or fact</strong> — explanation from document.</div>
+        <!-- Card title = the takeaway of THIS specific card -->
+        <div class="card-title">[Specific takeaway: what this one does or means]</div>
+        <div class="card-body"><strong>[Exact number or fact]</strong> — [consequence or why it matters].</div>
       </div>
-      <!-- 3-4 cards -->
+      <!-- 3-4 cards total -->
     </div>
   </div>
 </section>
 
-### PRIORITY ROWS (use ALL priority_or_risk_items)
+### PRIORITY ROWS — Urgency ranking. Every row: what, how many, why urgent.
 <section class="section section-white">
   <div class="section-inner">
-    <div class="chapter-label">Priorità di Intervento</div>
-    <h2 class="section-title">Analisi del <span class="accent">Rischio</span></h2>
-    <p class="section-body">Context sentence about the risk/priority classification.</p>
+    <div class="chapter-label">[NARRATIVE LABEL e.g. "LE URGENZE"]</div>
+    <!-- Title = the stakes: what happens if we don't act -->
+    <h2 class="section-title">[N items at risk + consequence if ignored] <span class="accent">[key word]</span></h2>
+    <p class="section-body">[What is the classification system? What do these categories mean for action?]</p>
     <div class="priority-list">
       <div class="priority-row" data-aos="fade-up" data-aos-delay="0">
         <div class="priority-num">1</div>
         <div class="priority-content">
-          <div class="priority-title">Urgenza Immediata</div>
-          <div class="priority-body"><strong>38 alberi (6,4%)</strong> — Intervento entro 24 ore per rischio caduta.</div>
+          <!-- Title = label from data; body = count + % + specific consequence -->
+          <div class="priority-title">[priority label]</div>
+          <div class="priority-body"><strong>[count] ([percentage]%)</strong> — [what this means in practice].</div>
         </div>
-        <div class="priority-badge">6,4%</div>
+        <div class="priority-badge">[percentage]%</div>
       </div>
-      <!-- Repeat for EVERY item with real count + percentage -->
+      <!-- ONE ROW PER priority_or_risk_items ENTRY — ALL entries -->
     </div>
   </div>
 </section>
 
-### PROCESS FLOW
+### PROCESS FLOW — The path to results. Each step title = its outcome.
 <section class="section section-dark">
   <div class="section-inner">
-    <div class="chapter-label">Processo</div>
-    <h2 class="section-title">Come <span class="accent">Funziona</span></h2>
+    <div class="chapter-label">[NARRATIVE LABEL e.g. "IL METODO"]</div>
+    <!-- Title = the final outcome the whole process leads to -->
+    <h2 class="section-title">[What the process achieves in total] <span class="accent">[key outcome]</span></h2>
     <div class="process-flow" data-aos="fade-up">
       <div class="process-step">
-        <div class="process-step-icon">🌳</div>
-        <div class="process-step-title">Step Title</div>
-        <div class="process-step-body">Specific description with data.</div>
+        <div class="process-step-icon">🔍</div>
+        <!-- Step title = what is ACHIEVED in this step, not just its name -->
+        <div class="process-step-title">[Outcome of this step]</div>
+        <div class="process-step-body">[Specific description: what happens, who does it, what data is produced.]</div>
       </div>
-      <!-- 3-5 steps from process_steps -->
+      <!-- one step per process_steps entry -->
     </div>
   </div>
 </section>
 
-### TWO-COL + INFO BOXES
+### TWO-COL + INFO BOXES — Investment and rules side by side.
 <section class="section section-dark">
   <div class="section-inner">
     <div class="two-col">
       <div data-aos="fade-right">
-        <div class="chapter-label">Topic</div>
-        <h2 class="section-title">Title</h2>
+        <div class="chapter-label">[NARRATIVE LABEL]</div>
+        <!-- Title = the bottom-line conclusion -->
+        <h2 class="section-title">[Conclusion about investment or rules] <span class="accent">[number or key word]</span></h2>
         <ul class="feature-list">
-          <li><strong>Fact 1</strong> — detail</li>
-          <li><strong>Fact 2</strong> — detail</li>
+          <li><strong>[Specific benefit or rule value]</strong> — [why it matters, consequence]</li>
+          <!-- 4-5 bullets from benefits_outcomes or rules_principles -->
         </ul>
       </div>
       <div data-aos="fade-left">
+        <!-- One info-box per investment_costs entry -->
         <div class="info-box">
           <div class="info-box-icon">💰</div>
           <div>
-            <div class="info-box-title">Investimento</div>
-            <div class="info-box-body"><strong>€ 46.340</strong> — exact breakdown from investment_costs.</div>
-          </div>
-        </div>
-        <div class="info-box">
-          <div class="info-box-icon">📋</div>
-          <div>
-            <div class="info-box-title">Another Info</div>
-            <div class="info-box-body">Specific fact from document.</div>
+            <div class="info-box-title">[Investment label]</div>
+            <div class="info-box-body"><strong>[exact amount]</strong> — [what this covers, ROI if available].</div>
           </div>
         </div>
       </div>
@@ -782,117 +947,114 @@ COMPONENT REFERENCE:
   </div>
 </section>
 
-### RULE CARDS (for principles/rules from rules_principles)
+### RULE CARDS — Each rule as a bold number/value + why it exists.
 <section class="section section-dark">
   <div class="section-inner">
-    <div class="chapter-label">Principi</div>
-    <h2 class="section-title">Regola <span class="accent">10-20-30</span></h2>
-    <p class="section-body">Explanation of the rule or principle.</p>
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <h2 class="section-title">[The principle these rules enforce — as a conclusion] <span class="accent">[key number]</span></h2>
+    <p class="section-body">[Why these thresholds exist: what risk do they prevent?]</p>
     <div class="rule-grid" data-aos="zoom-in">
       <div class="rule-card">
-        <div class="rule-number">10%</div>
-        <div class="rule-label">Per singola specie</div>
-        <div class="rule-desc">Explanation of this rule threshold.</div>
+        <div class="rule-number">[value from rules_principles]</div>
+        <div class="rule-label">[label]</div>
+        <div class="rule-desc">[explanation: what happens if this is violated?]</div>
       </div>
-      <!-- one card per rule -->
+      <!-- one card per rules_principles entry -->
     </div>
   </div>
 </section>
 
-### TIMELINE (if timeline_events has ≥3 items)
+### TIMELINE — The historical arc. Each event = a turning point.
 <section class="section section-white">
   <div class="section-inner">
-    <div class="chapter-label">Cronologia</div>
-    <h2 class="section-title">Il Percorso <span class="accent">nel Tempo</span></h2>
+    <div class="chapter-label">[NARRATIVE LABEL e.g. "IL PERCORSO"]</div>
+    <!-- Title = what the full timeline collectively shows -->
+    <h2 class="section-title">[What changed from start to end of timeline] <span class="accent">[year range]</span></h2>
     <div class="timeline">
       <div class="timeline-item" data-aos="fade-up">
         <div class="timeline-dot"></div>
-        <div class="timeline-date">2022</div>
-        <div class="timeline-title">Event Title</div>
-        <div class="timeline-body">Description from timeline_events.</div>
+        <div class="timeline-date">[date]</div>
+        <!-- Event title = why this moment mattered -->
+        <div class="timeline-title">[Significance of this event — not just its name]</div>
+        <div class="timeline-body">[What specifically happened, what changed, any numbers involved.]</div>
       </div>
+      <!-- one item per timeline_events entry -->
     </div>
   </div>
 </section>
 
-### PROGRESS BARS (for percentage distributions)
-<section class="section section-white">
-  <div class="section-inner">
-    <div class="chapter-label">Distribuzione</div>
-    <h2 class="section-title">Title</h2>
-    <div data-aos="fade-up">
-      <div class="progress-item">
-        <div class="progress-header">
-          <span class="progress-label">Tilia spp.</span>
-          <span class="progress-value">31,07%</span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill" data-width="31.07%" style="width:0%"></div></div>
-      </div>
-      <!-- repeat for each item -->
-    </div>
-  </div>
-</section>
-
-### HIGHLIGHT (use best quote from key_quotes)
+### HIGHLIGHT — The emotional peak. THE ARROW moment.
 <section class="section section-highlight">
   <div class="section-inner" style="text-align:center">
-    <div class="chapter-label">Il Messaggio Chiave</div>
-    <blockquote>Exact quote or key finding from key_quotes.</blockquote>
+    <div class="chapter-label" style="color:rgba(255,255,255,0.7)">IL MESSAGGIO</div>
+    <!-- This IS the arrow — the single most important takeaway of the whole presentation -->
+    <!-- Use best key_quote OR construct: "[Entity] [verb] [specific outcome] — [implication for the audience]" -->
+    <blockquote>[The arrow: the one sentence the audience will remember. Specific. Bold. With a number if possible.]</blockquote>
   </div>
 </section>
 
-### CLOSING
+### CLOSING — Forward-looking. What should happen next?
 <section class="section section-dark">
   <div class="section-inner">
-    <div class="chapter-label">Conclusioni</div>
-    <h2 class="section-title">Il Futuro del <span class="accent">Verde Urbano</span></h2>
-    <p class="section-body">Summary using conclusions array — specific facts only.</p>
+    <div class="chapter-label">[NARRATIVE LABEL e.g. "IL PASSO SUCCESSIVO"]</div>
+    <!-- Title = what needs to happen NOW — forward-looking, action-oriented -->
+    <h2 class="section-title">[Call to action or next-step conclusion — never just "Conclusioni"] <span class="accent">[key word]</span></h2>
+    <!-- 2 sentences using conclusions array — specific facts that prove why action is needed now -->
+    <p class="section-body">[Conclusion sentence 1 with specific number]. [Conclusion sentence 2 with specific outcome or deadline].</p>
     <div class="contact-grid" data-aos="fade-up">
-      <div class="contact-item"><div class="contact-type">Ente</div><div class="contact-value">[entity from contacts]</div></div>
-      <!-- use all contacts fields that exist -->
+      <div class="contact-item"><div class="contact-type">Ente</div><div class="contact-value">[contacts.entity]</div></div>
+      <!-- one item per contacts field that has a value -->
     </div>
   </div>
 </section>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHART.JS INITIALIZATION TEMPLATES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-CHART.JS TEMPLATES:
-
-// Doughnut/Pie — use exact labels+values from charts_data
+// Doughnut/Pie — use EXACT labels and values from charts_data JSON
 new Chart(document.getElementById('chart1'), {
   type: 'doughnut',
   data: {
-    labels: ['Tilia 31%', 'Acer 20%', 'Carpinus 9%'],
-    datasets: [{ data: [31.07, 20.11, 9.2], backgroundColor: ['${palette.primary}', '${palette.secondary}', '${palette.primary}99', '${palette.secondary}66', '${palette.primary}44', '${palette.secondary}33'], borderWidth: 0, hoverOffset: 8 }]
+    labels: [/* exact labels from charts_data[0].labels */],
+    datasets: [{ data: [/* exact values from charts_data[0].values */], backgroundColor: ['${palette.primary}', '${palette.secondary}', '${palette.primary}99', '${palette.secondary}66', '${palette.primary}44', '${palette.secondary}33'], borderWidth: 0, hoverOffset: 8 }]
   },
-  options: { responsive: true, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '${isLight ? '#0f1e35' : palette.text}', font: { family: 'Inter', size: 11 }, padding: 14, boxWidth: 10, borderRadius: 3 } } } }
+  options: { responsive: true, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '${labelColor}', font: { size: 11 }, padding: 14, boxWidth: 10, borderRadius: 3 } } } }
 });
 
-// Horizontal Bar
+// Horizontal Bar — for rankings, comparisons
 new Chart(document.getElementById('chart2'), {
   type: 'bar',
-  data: { labels: ['Label A', 'Label B', 'Label C'], datasets: [{ data: [120, 80, 45], backgroundColor: '${palette.primary}cc', borderRadius: 6, borderSkipped: false }] },
-  options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '${isLight ? '#5a6a7e' : 'rgba(255,255,255,0.6)'}' }, grid: { color: '${isLight ? '#e5e7eb' : 'rgba(255,255,255,0.08)'}' } }, y: { ticks: { color: '${isLight ? '#5a6a7e' : 'rgba(255,255,255,0.6)'}' }, grid: { display: false } } } }
+  data: { labels: [/* exact labels */], datasets: [{ data: [/* exact values */], backgroundColor: '${palette.primary}cc', borderRadius: 6, borderSkipped: false }] },
+  options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '${tickColor}' }, grid: { color: '${gridColor}' } }, y: { ticks: { color: '${tickColor}' }, grid: { display: false } } } }
+});
+
+// Vertical Bar — for time series or category comparison
+new Chart(document.getElementById('chart3'), {
+  type: 'bar',
+  data: { labels: [/* labels */], datasets: [{ data: [/* values */], backgroundColor: '${palette.primary}cc', borderRadius: 8, borderSkipped: false }] },
+  options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '${tickColor}' }, grid: { color: '${gridColor}' } }, x: { ticks: { color: '${tickColor}' }, grid: { display: false } } } }
 });
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-ORIGINAL DOCUMENT (for additional context and exact quotes):
+ORIGINAL DOCUMENT (additional context and exact quotes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Filename: ${filename}
-
 ${truncatedText}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL SELF-CHECK — verify before outputting
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Count <section class="section ..."> elements → EXACTLY ${config.slideCount}? ✓
+2. Every section title is a CONCLUSION/ASSERTION with a specific fact or number? ✓ (no generic labels)
+3. Every key_stats entry appears in the STATS GRID? ✓
+4. Every charts_data entry has a Chart.js canvas + init? ✓ (at least ${minCharts})
+5. Every priority_or_risk_item appears in PRIORITY ROWS with count + percentage? ✓
+6. HIGHLIGHT section contains THE ARROW — the single most important takeaway? ✓
+7. CLOSING title is forward-looking and action-oriented (not "Conclusioni")? ✓
+8. Zero filler sentences — every line contains a specific fact? ✓
 
-⚠️ FINAL SELF-CHECK before outputting:
-1. Count <section class="section ..."> elements → must be EXACTLY ${config.slideCount}
-2. Every number in key_stats appears in the STATS section
-3. Every charts_data entry has a matching Chart.js init in the <script> block
-4. Every priority_or_risk_item appears in a PRIORITY ROWS section with real count+%
-5. ZERO filler sentences — every line has a specific fact
-6. At least ${minCharts} charts included
-
-OUTPUT: Return ONLY raw HTML. No markdown, no backticks. Start with <!DOCTYPE html>.`;
+OUTPUT: Return ONLY raw HTML. No markdown, no backticks, no explanation. Start with <!DOCTYPE html>.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
