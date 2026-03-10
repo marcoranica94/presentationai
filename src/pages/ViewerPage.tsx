@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Download, Maximize2, FileDown,
-  Share2, Copy, Check, Globe, GlobeLock, Minimize2, Code, ImageDown
+  Share2, Copy, Check, Globe, GlobeLock, Minimize2, Code, ImageDown, Layers
 } from 'lucide-react';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -122,6 +122,9 @@ export function ViewerPage() {
           <div className="flex-1" />
 
           {/* Edit */}
+          <Button variant="outline" size="sm" onClick={() => navigate(`/visual-edit/${content.id}`)}>
+            <Layers className="h-4 w-4" /> Visual
+          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate(`/edit/${content.id}`)}>
             <Code className="h-4 w-4" /> Modifica
           </Button>
