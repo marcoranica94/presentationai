@@ -2,7 +2,7 @@ import { getGeminiModel } from '@/config/gemini';
 import type { GenerationConfig, PresentationUseCase } from '@/types';
 import { PALETTES } from '@/types';
 
-// Narrative arc per use case: defines chapter label vocabulary and emotional rhythm
+// Narrative arc per use case: labels, tone, arc
 const USE_CASE_NARRATIVE: Record<PresentationUseCase, {
   labels: string[];
   heroRole: string;
@@ -10,62 +10,59 @@ const USE_CASE_NARRATIVE: Record<PresentationUseCase, {
   tone: string;
 }> = {
   general: {
-    labels: ['IL CONTESTO', 'I NUMERI', 'LA SCOPERTA', 'L\'ANALISI', 'L\'IMPATTO', 'LE PRIORITÀ', 'IL PERCORSO', 'LA RISPOSTA', 'LA VISIONE', 'IL PASSO SUCCESSIVO'],
-    heroRole: 'Establish the ONE key finding that makes this document worth reading.',
-    arc: 'Context → Evidence → Analysis → Priorities → Recommendations → Next Steps',
-    tone: 'Authoritative, data-driven, precise. Every claim backed by a number.',
+    labels: ['IL CONTESTO', 'PERCHÉ CONTA', 'LA METODOLOGIA', 'I NUMERI', 'LA SCOPERTA', 'L\'ANALISI', 'IL RISCHIO', 'LE URGENZE', 'LA RISPOSTA', 'I BENEFICI', 'IL FUTURO', 'IL PASSO SUCCESSIVO'],
+    heroRole: 'Open with the single most important finding + why the audience should care.',
+    arc: 'WHY → WHAT IS IT → NUMBERS → RISK/ANALYSIS → SOLUTIONS → BENEFITS → FUTURE',
+    tone: 'Authoritative, data-driven, precise. Every claim backed by a number. Explain before showing data.',
   },
   political: {
-    labels: ['LA SITUAZIONE', 'I RISULTATI', 'IL CAMBIAMENTO', 'I DATI', 'LA VISIONE', 'L\'IMPEGNO', 'I PROSSIMI PASSI', 'LA CHIAMATA'],
+    labels: ['LA SFIDA', 'I RISULTATI', 'IL CAMBIAMENTO', 'I DATI', 'LA VISIONE', 'L\'IMPEGNO', 'I PROSSIMI PASSI', 'LA CHIAMATA'],
     heroRole: 'Open with the boldest achievement or the sharpest contrast between past and future.',
-    arc: 'Problem (current state) → Achievements (what changed) → Vision (what could be) → Call to Action',
-    tone: 'Passionate, direct, values-driven. Use contrast: before/after, old/new, problem/solution.',
+    arc: 'Problem → Achievements → Vision → Call to Action',
+    tone: 'Passionate, direct, values-driven. Use before/after contrast. End with clear CTA.',
   },
   municipal: {
-    labels: ['IL SERVIZIO', 'I NUMERI', 'COSA ABBIAMO FATTO', 'L\'IMPATTO', 'IL PROGETTO', 'LE FASI', 'I COSTI', 'I CONTATTI'],
-    heroRole: 'State the purpose and direct benefit to citizens upfront.',
-    arc: 'What it is → What was done → Impact on citizens → How to access → Contacts',
-    tone: 'Clear, accessible, service-oriented. Lead with citizen benefit, not institutional process.',
+    labels: ['IL PROGETTO', 'PERCHÉ LO ABBIAMO FATTO', 'LA METODOLOGIA', 'I NUMERI', 'L\'ANALISI', 'L\'IMPATTO', 'COSA ABBIAMO FATTO', 'I COSTI', 'I BENEFICI', 'IL FUTURO', 'I CONTATTI'],
+    heroRole: 'State purpose and direct citizen benefit. Who benefits and how.',
+    arc: 'Why → What → Numbers → Risk/Results → Interventions → Benefits → Future → Contacts',
+    tone: 'Clear, accessible, citizen-first. Lead with benefit, not process. Address common questions.',
   },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TYPOGRAPHY SYSTEM — different per style to avoid same-every-time look
+// TYPOGRAPHY SYSTEM — distinct per style
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FontSystem {
   googleFontsUrl: string;
   headingFont: string;
   bodyFont: string;
-  monoFont?: string;
 }
 
 function getTypographySystem(style: string): FontSystem {
-  // Each style gets a completely distinct type personality
   const systems: Record<string, FontSystem> = {
     minimal: {
-      googleFontsUrl: "https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,700;0,900;1,300&family=DM+Sans:wght@300;400;500;600&display=swap",
+      googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,700;0,900;1,300&family=DM+Sans:wght@300;400;500;600&display=swap',
       headingFont: "'Fraunces', Georgia, serif",
       bodyFont: "'DM Sans', system-ui, sans-serif",
     },
     professional: {
-      googleFontsUrl: "https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Instrument+Sans:wght@300;400;500;600&display=swap",
+      googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Instrument+Sans:wght@300;400;500;600&display=swap',
       headingFont: "'Syne', sans-serif",
       bodyFont: "'Instrument Sans', sans-serif",
     },
     dark: {
-      googleFontsUrl: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500&display=swap",
+      googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Space+Grotesk:wght@300;400;500&display=swap',
       headingFont: "'Bricolage Grotesque', sans-serif",
       bodyFont: "'Space Grotesk', sans-serif",
     },
     vibrant: {
-      googleFontsUrl: "https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;700;800;900&family=Satoshi:wght@300;400;500&display=swap",
-      headingFont: "'Cabinet Grotesk', sans-serif",
-      bodyFont: "'Satoshi', sans-serif",
+      googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Outfit:wght@300;400;500&display=swap',
+      headingFont: "'Nunito', sans-serif",
+      bodyFont: "'Outfit', sans-serif",
     },
-    // fallback for any other style
     default: {
-      googleFontsUrl: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Mulish:wght@300;400;500;600&display=swap",
+      googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Mulish:wght@300;400;500;600&display=swap',
       headingFont: "'Playfair Display', Georgia, serif",
       bodyFont: "'Mulish', sans-serif",
     },
@@ -80,11 +77,7 @@ function getTypographySystem(style: string): FontSystem {
 function buildExtractionPrompt(text: string): string {
   return `You are a data extraction expert. Your job is to extract EVERY piece of structured information from this document into JSON.
 
-Be EXHAUSTIVE. Missing a number or fact means a worse presentation. Extract:
-- Every number, percentage, date, monetary value
-- Every list, category, classification
-- Every step, phase, recommendation
-- Every quote, conclusion, contact
+Be EXHAUSTIVE. Extract everything: numbers, lists, explanations, quotes, methodology, FAQ, team info, benefits, future steps.
 
 DOCUMENT:
 ${text}
@@ -96,9 +89,29 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanation):
   "doc_type": "report|plan|study|survey|census|policy|other",
   "year": "year of the document",
   "summary": "2-3 comprehensive sentences covering all key points",
+  "opening_quote": "Best short impactful quote from the document (for hero section)",
+  "main_message": "The single most important conclusion in 1 sentence with a specific fact",
+
+  "document_purpose": {
+    "problem": "What gap or risk prompted this document? (1-2 sentences)",
+    "beneficiaries": "Who benefits and in what concrete way?",
+    "motivation_pillars": [
+      {"icon": "🔒", "title": "Pillar title (e.g. Sicurezza)", "desc": "1-sentence specific description of this benefit/reason"}
+    ]
+  },
+
+  "methodology": {
+    "overview": "Brief description of HOW the study/analysis was conducted",
+    "protocol_name": "Name of protocol, standard, or methodology used (if any)",
+    "levels": [
+      {"icon": "📋", "number": "1", "name": "Level or phase name", "desc": "What this covers and how", "result": "What it produces"}
+    ]
+  },
+
   "key_stats": [
     {"value": "2.163", "unit": "alberi censiti", "context": "su tutto il territorio comunale", "icon": "park"}
   ],
+
   "charts_data": [
     {
       "chart_id": "species_distribution",
@@ -111,6 +124,7 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanation):
       "axis_label": ""
     }
   ],
+
   "main_topics": [
     {
       "topic": "Topic heading",
@@ -120,24 +134,57 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanation):
       ]
     }
   ],
+
   "priority_or_risk_items": [
     {"rank": 1, "label": "Urgenza immediata", "value": 38, "percentage": 6.4, "description": "Descrizione intervento"}
   ],
-  "timeline_events": [
-    {"date": "2022", "event": "Descrizione dell'evento nel percorso temporale"}
+
+  "objections_faq": [
+    {
+      "question": "Common objection or question the audience might have (e.g. 'Perché tagliate alberi che sembrano sani?')",
+      "answer": "The document's response — clear, factual, 2-3 sentences"
+    }
   ],
+
+  "benefits": [
+    {"icon": "🌡️", "title": "Short benefit title", "desc": "1-2 sentence description with specific data if available"}
+  ],
+
+  "timeline_events": [
+    {"date": "2022", "event": "Descrizione dell'evento"}
+  ],
+
   "rules_principles": [
     {"value": "Max 10%", "label": "Per singola specie", "explanation": "Regola biodiversità 10-20-30"}
   ],
-  "benefits_outcomes": [
-    "Benefit or outcome with specific details"
-  ],
+
   "investment_costs": [
     {"label": "Investimento totale", "amount": "€ 46.340", "detail": "Suddiviso in fasi operative"}
   ],
+
   "process_steps": [
     {"step": 1, "title": "Nome della fase", "description": "Descrizione specifica della fase"}
   ],
+
+  "next_steps": [
+    {"step": 1, "title": "Next action title", "desc": "What specifically needs to happen and why"}
+  ],
+
+  "benefits_outcomes": [
+    "Benefit or outcome with specific details"
+  ],
+
+  "priority_or_risk_items": [
+    {"rank": 1, "label": "Urgenza immediata", "value": 38, "percentage": 6.4, "description": "Cosa comporta questo livello"}
+  ],
+
+  "team_credits": {
+    "entity": "Organization that conducted the work",
+    "person": "Lead professional name and title",
+    "method": "Methodology or protocol used",
+    "period": "When the work was done"
+  },
+
   "contacts": {
     "entity": "Nome ente",
     "website": "",
@@ -145,13 +192,17 @@ Return ONLY valid JSON (no markdown, no code blocks, no explanation):
     "phone": "",
     "address": ""
   },
+
   "key_quotes": [
     "Exact important quote from the document"
   ],
+
   "tags": ["tag1", "tag2", "tag3"],
+
   "conclusions": [
     "Specific conclusion with data from the document"
   ],
+
   "additional_lists": [
     {"title": "List name", "items": ["item 1 with data", "item 2 with data"]}
   ]
@@ -276,6 +327,56 @@ body { font-family: var(--body-font); background: var(--bg-base); color: var(--t
   color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
+/* ── INLINE PULL QUOTE ─────────────────────────────── */
+.inline-quote {
+  border-left: 3px solid var(--accent);
+  padding: 12px 20px; margin: 24px 0;
+  font-family: var(--heading-font); font-style: italic;
+  font-size: 1.05em; line-height: 1.6;
+}
+.section-white .inline-quote, .section-light .inline-quote { color: #0f1e35; background: var(--card-bg); }
+.section-dark  .inline-quote { color: var(--text-on-dark); background: var(--card-bg-dark); }
+
+/* ── MOTIVATION PILLARS ────────────────────────────── */
+.motivation-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-top:32px; }
+.motivation-card {
+  border-radius:16px; padding:28px 24px;
+  border:1px solid var(--card-border);
+  display:flex; flex-direction:column; gap:10px;
+}
+.section-white .motivation-card, .section-light .motivation-card { background:var(--card-bg); }
+.section-dark  .motivation-card { background:var(--card-bg-dark); border-color:var(--card-border-dark); }
+.motivation-icon { font-size:2em; }
+.motivation-title { font-family:var(--heading-font); font-size:1em; font-weight:700; }
+.section-white .motivation-title, .section-light .motivation-title { color:#0f1e35; }
+.section-dark  .motivation-title { color:#fff; }
+.motivation-desc { font-size:0.86em; line-height:1.6; }
+.section-white .motivation-desc, .section-light .motivation-desc { color:var(--text-muted); }
+.section-dark  .motivation-desc { color:var(--text-muted-on-dark); }
+
+/* ── METHODOLOGY LEVELS ────────────────────────────── */
+.method-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; margin-top:32px; }
+.method-card {
+  border-radius:16px; padding:32px 28px;
+  border:2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  position:relative;
+}
+.section-white .method-card, .section-light .method-card { background:var(--card-bg); }
+.section-dark  .method-card { background:var(--card-bg-dark); }
+.method-number {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff; font-family:var(--heading-font); font-size:0.9em; font-weight:800;
+  margin-bottom:14px;
+}
+.method-icon { font-size:1.6em; display:block; margin-bottom:10px; }
+.method-title { font-family:var(--heading-font); font-size:1.05em; font-weight:700; margin-bottom:8px; color:var(--accent); }
+.method-desc { font-size:0.88em; line-height:1.65; margin-bottom:10px; }
+.section-white .method-desc, .section-light .method-desc { color:var(--text-muted); }
+.section-dark  .method-desc { color:var(--text-muted-on-dark); }
+.method-result { font-size:0.82em; font-weight:600; color:var(--accent); border-top:1px solid var(--card-border); padding-top:10px; margin-top:4px; }
+
 /* ── STATS ─────────────────────────────────────────── */
 .stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:0; margin-top:36px; border:1px solid var(--card-border); border-radius:16px; overflow:hidden; }
 .section-dark .stats-grid { border-color: var(--card-border-dark); }
@@ -317,6 +418,66 @@ body { font-family: var(--body-font); background: var(--bg-base); color: var(--t
 .card-body { font-size:0.86em; line-height:1.65; }
 .section-white .card-body, .section-light .card-body { color:var(--text-muted); }
 .section-dark  .card-body  { color:var(--text-muted-on-dark); }
+
+/* ── BENEFIT GRID (6-item) ─────────────────────────── */
+.benefit-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-top:32px; }
+.benefit-item {
+  border-radius:14px; padding:24px 20px;
+  border:1px solid var(--card-border);
+  display:flex; flex-direction:column; gap:8px;
+}
+.section-white .benefit-item, .section-light .benefit-item { background:var(--card-bg); }
+.section-dark  .benefit-item { background:var(--card-bg-dark); border-color:var(--card-border-dark); }
+.benefit-icon { font-size:1.8em; }
+.benefit-title { font-family:var(--heading-font); font-size:0.95em; font-weight:700; color:var(--accent); }
+.benefit-desc { font-size:0.84em; line-height:1.6; }
+.section-white .benefit-desc, .section-light .benefit-desc { color:var(--text-muted); }
+.section-dark  .benefit-desc { color:var(--text-muted-on-dark); }
+
+/* ── FAQ LIST ──────────────────────────────────────── */
+.faq-list { margin-top:28px; display:flex; flex-direction:column; gap:16px; }
+.faq-item {
+  border-radius:12px; padding:24px 28px;
+  border:1px solid var(--card-border);
+}
+.section-white .faq-item, .section-light .faq-item { background:var(--card-bg); }
+.section-dark  .faq-item { background:var(--card-bg-dark); border-color:var(--card-border-dark); }
+.faq-question {
+  font-family:var(--heading-font); font-size:1em; font-weight:700;
+  margin-bottom:10px; display:flex; align-items:flex-start; gap:10px;
+}
+.section-white .faq-question, .section-light .faq-question { color:#0f1e35; }
+.section-dark  .faq-question { color:#fff; }
+.faq-question::before {
+  content:'?'; flex-shrink:0; width:26px; height:26px; border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff; font-size:0.85em; font-weight:900;
+  display:flex; align-items:center; justify-content:center; margin-top:1px;
+}
+.faq-answer { font-size:0.88em; line-height:1.7; padding-left:36px; }
+.section-white .faq-answer, .section-light .faq-answer { color:var(--text-muted); }
+.section-dark  .faq-answer { color:var(--text-muted-on-dark); }
+
+/* ── ROADMAP (numbered future steps) ───────────────── */
+.roadmap-list { margin-top:28px; display:flex; flex-direction:column; gap:0; }
+.roadmap-step {
+  display:flex; gap:20px; padding:20px 0;
+  border-bottom:1px solid color-mix(in srgb, var(--card-border) 50%, transparent);
+}
+.roadmap-step:last-child { border-bottom:none; }
+.roadmap-num {
+  flex-shrink:0; width:42px; height:42px; border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff; font-family:var(--heading-font); font-size:1em; font-weight:800;
+  display:flex; align-items:center; justify-content:center; margin-top:2px;
+}
+.roadmap-content { flex:1; }
+.roadmap-title { font-family:var(--heading-font); font-size:1em; font-weight:700; margin-bottom:5px; }
+.section-white .roadmap-title, .section-light .roadmap-title { color:#0f1e35; }
+.section-dark  .roadmap-title { color:#fff; }
+.roadmap-desc { font-size:0.86em; line-height:1.6; }
+.section-white .roadmap-desc, .section-light .roadmap-desc { color:var(--text-muted); }
+.section-dark  .roadmap-desc { color:var(--text-muted-on-dark); }
 
 /* ── PROCESS FLOW ──────────────────────────────────── */
 .process-flow { display:flex; flex-wrap:wrap; gap:0; margin-top:32px; }
@@ -493,6 +654,7 @@ blockquote::before { content:'\u201C'; font-size:4.5em; color:rgba(255,255,255,0
   .section { padding:80px 6%; }
   .stats-grid { grid-template-columns:repeat(2,1fr); }
   .cards-grid { grid-template-columns:1fr; }
+  .benefit-grid { grid-template-columns:1fr; }
   .process-flow { flex-direction:column; }
   .process-step { clip-path:none !important; }
 }
@@ -505,133 +667,135 @@ blockquote::before { content:'\u201C'; font-size:4.5em; color:rgba(255,255,255,0
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SECTION PLAN
+// SECTION PLAN — Gamma-style narrative arc
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Narrative-driven section plan: each section has a PURPOSE and CONTENT TYPE
-// Titles are ASSERTIONS (conclusions with data), NOT labels
 function buildSectionPlan(count: number, useCase: PresentationUseCase): string {
   const narrative = USE_CASE_NARRATIVE[useCase];
 
-  // Core narrative skeleton — always present
-  const core = [
-    `1. HERO
-   Purpose: ${narrative.heroRole}
-   Title: The single most important conclusion from the document, with the biggest number. Example: "Titolo Audace con Il Numero Più Importante"
-   Content: hero-badge (entity), gradient title, 2-sentence body with 2+ key facts, tags from data
-   Chapter label: [first label from the narrative arc — e.g. "LA SFIDA" or "IL PATRIMONIO"]`,
+  // The full 15-section Gamma-style arc
+  const fullArc = [
+    // 1
+    `HERO
+  Title: [Opening sentence with key finding + most important number. Make it the hook.]
+  Chapter label: [e.g. "${narrative.labels[0]}"]
+  Content: hero-badge with entity name + icon; h1 with gradient span; 2-sentence body with 2+ key facts from summary; opening_quote as inline-quote if available; tags from data
+  Note: This section HOOKS the audience. Why should they care? State the stakes immediately.`,
 
-    `2. STATS GRID
-   Purpose: Shock the audience with the scale of what's at stake.
-   Title: Not "Numeri Chiave" — write the CONCLUSION the numbers prove. E.g.: "Un Patrimonio che Vale Più di Quanto Pensiamo"
-   Content: Use ALL key_stats entries. Each stat: big gradient number + unit + 1-line context that explains WHY it matters.
-   Chapter label: [narrative label for this phase, e.g. "I NUMERI CHE CONTANO"]`,
+    // 2
+    `WHY / MOTIVATION — "Perché abbiamo fatto questo?"
+  Title: An explanatory title is OK here. E.g. "Perché abbiamo censito 2.163 Alberi?" or "Cosa ci ha spinto ad agire"
+  Chapter label: [e.g. "${narrative.labels[1]}"]
+  Content: 2-sentence intro (the problem/opportunity) + motivation-grid with 3 motivation-cards from document_purpose.motivation_pillars (icon + title + desc)
+  Note: EMOTIONAL HOOK. Help the audience understand WHY this matters for them personally.`,
 
-    `3. FIRST CONTENT SECTION + FEATURE LIST
-   Purpose: Establish the main topic with the deepest insight from main_topics[0].
-   Title: The KEY FINDING of this topic as a conclusion sentence. E.g.: "Il 31% delle Specie Domina il Verde Cittadino" — never "Analisi della Vegetazione"
-   Content: two-col layout — left: assertion paragraph (2 sentences, 2+ numbers) + feature list where each bullet = BOLD FACT — explanation; right: chart OR info visual
-   Chapter label: [narrative label, e.g. "LA SCOPERTA"]`,
+    // 3
+    `METHODOLOGY — "Cos'è e come funziona"
+  Title: Descriptive/educational title OK here. E.g. "Come Abbiamo Condotto il Censimento" or "Il Metodo: Due Livelli di Analisi"
+  Chapter label: [e.g. "${narrative.labels[2] ?? 'LA METODOLOGIA'}"]
+  Content: short intro paragraph (overview + protocol name if any) + method-grid with 2 method-cards from methodology.levels (icon, number, name, desc, result)
+  Optional inline-quote: if a relevant quote from key_quotes fits the methodology context
+  Note: Build CREDIBILITY. Explain what was done before showing the results.`,
 
-    `4. CHART 1 (data visualization)
-   Purpose: Visual proof of the most important distribution or comparison.
-   Title: The insight the chart proves. E.g.: "Tre Specie Coprono il 60% del Verde — Un Rischio Sistemico" — never "Distribuzione Dati"
-   Content: two-col — left: 3-5 key insight bullets from chart data; right: Chart.js canvas (doughnut or pie from charts_data[0])
-   Chapter label: [e.g. "L'EVIDENZA"]`,
+    // 4
+    `STATS GRID — The numbers at a glance
+  Title: NOT "Numeri Chiave". Write the conclusion the numbers prove together. E.g. "2.163 Alberi, un Patrimonio che Vale Più di Quanto Pensiamo"
+  Chapter label: [e.g. "${narrative.labels[3] ?? 'I NUMERI'}"]
+  Content: 1-sentence summary + stats-grid with ALL key_stats entries. Each stat: gradient number + unit label + context (WHY this number matters, not just what it is)`,
+
+    // 5
+    `CHART 1 — Primary data distribution
+  Title: The insight this chart proves. NOT "Distribuzione Dati". E.g. "Il 60% del Verde Si Concentra in 3 Specie: un Rischio Sistemico"
+  Chapter label: [e.g. "${narrative.labels[4] ?? 'LA SCOPERTA'}"]
+  Content: two-col — left: analytical paragraph (what does this distribution mean?) + feature-list with 4-5 key insights (bold value + consequence); right: Chart.js canvas from charts_data[0]`,
+
+    // 6
+    `CHART 2 — Second dimension of data
+  Title: What this specific chart reveals. E.g. "Il Verde Stradale Copre il 25%: la Prima Linea di Difesa Climatica"
+  Chapter label: [e.g. "${narrative.labels[5] ?? 'L\'ANALISI'}"]
+  Content: two-col — left: Chart.js canvas from charts_data[1]; right: analytical paragraph + feature-list insights
+  If only one chart available: use a progress-bar section for the species or area distribution instead`,
+
+    // 7
+    `RISK EXPLAINER / CONTEXT — "Cos'è il rischio? Come si valuta?"
+  Title: Educational/explanatory title. E.g. "Come Valutiamo il Rischio Arboreo: il Protocollo Aretè®" or "Tre Fattori Determinano la Sicurezza di ogni Albero"
+  Chapter label: [e.g. "${narrative.labels[6] ?? 'IL RISCHIO'}"]
+  Content: intro paragraph explaining the risk/analysis methodology + cards-grid (3 cards) from main_topics or process_steps or methodology factors (Pericolo, Impulso, Bersaglio if available)
+  Note: EDUCATE before showing risk results. The audience needs to understand the system before seeing numbers.`,
+
+    // 8
+    `PRIORITY ROWS — Triage results
+  Title: The stakes + urgency. E.g. "38 Alberi Richiedono Intervento Immediato: Ecco la Mappa del Rischio"
+  Chapter label: [e.g. "${narrative.labels[7] ?? 'LE URGENZE'}"]
+  Content: intro paragraph (how many were analyzed, what the triage covers) + priority-list with ALL priority_or_risk_items (rank, label, count + percentage, description of what this means in practice)`,
+
+    // 9
+    `FAQ — "Le domande che tutti si fanno"
+  Title: Explanatory/inviting title. E.g. "Le Domande dei Cittadini: Rispondiamo con i Dati"
+  Chapter label: [e.g. "LE DOMANDE"]
+  Content: intro sentence + faq-list with ALL objections_faq entries (question + answer). Each question is a real objection or concern.
+  If objections_faq is empty: use this slot for INTERVENTIONS (the 4 types of action) with cards-grid instead.`,
+
+    // 10
+    `INTERVENTIONS / SOLUTIONS — "Cosa facciamo concretamente"
+  Title: The outcome of the interventions. E.g. "Quattro Strumenti per Mettere in Sicurezza ogni Albero"
+  Chapter label: [e.g. "LA RISPOSTA"]
+  Content: intro paragraph + cards-grid (3-4 cards) from process_steps or additional_lists — each card: icon + outcome title + specific description with data
+  Optional: info-box with investment_costs amounts`,
+
+    // 11
+    `BENEFITS — "I benefici concreti per i cittadini"
+  Title: NOT "Benefici del Verde". Write the conclusion. E.g. "Ogni Albero Abbassa la Temperatura di 2-5°C: i Dati Parlano Chiaro"
+  Chapter label: [e.g. "${narrative.labels[9] ?? 'I BENEFICI'}"]
+  Content: intro paragraph + benefit-grid with ALL benefits entries (icon + title + desc). Each benefit should feel tangible and citizen-centered.`,
+
+    // 12
+    `FUTURE ROADMAP — "I prossimi passi"
+  Title: The vision, not just a list. E.g. "Sei Passi per una Città più Verde e Sicura entro il 2030"
+  Chapter label: [e.g. "${narrative.labels[10] ?? 'IL FUTURO'}"]
+  Content: intro paragraph (what the roadmap achieves) + roadmap-list with ALL next_steps entries (numbered circle + title + desc)
+  If next_steps is empty: use process_steps or additional_lists`,
+
+    // 13
+    `RULE CARDS or TIMELINE
+  For rules_principles: Rule cards section. Title = what these rules prevent. E.g. "La Regola 10-20-30: Biodiversità come Assicurazione contro le Epidemie"
+  For timeline_events (≥3): Timeline section. Title = what the arc shows. E.g. "Dal 2019 al 2025: Come la Città ha Imparato a Conoscere i Suoi Alberi"
+  Chapter label: [e.g. "LE REGOLE" or "IL PERCORSO"]`,
+
+    // 14
+    `HIGHLIGHT — The emotional peak / THE ARROW
+  Title: (none — just blockquote)
+  Chapter label: "IL MESSAGGIO"
+  Content: section-highlight (gradient background) + blockquote with THE most powerful sentence from key_quotes OR a crafted summary: "[Entity] [key action] [specific outcome] — [why it matters for citizens]"
+  This is the ONE THING the audience will remember.`,
+
+    // 15
+    `CLOSING — Forward-looking. What happens next?
+  Title: Action-oriented, forward-looking. NOT "Conclusioni". E.g. "Il Verde Urbano è un Bene Comune: Proteggiamolo Insieme" or "Il Censimento è il Punto Zero: Ecco Cosa Succede Ora"
+  Chapter label: [e.g. "${narrative.labels[narrative.labels.length - 1]}"]
+  Content: 2-sentence summary from conclusions (specific facts only) + optional team_credits mention + contact-grid with all contacts fields that have values`,
   ];
 
-  const middle6: string[] = [
-    `5. CARDS (3-4)
-   Purpose: Break down the main topics or benefits into memorable takeaways.
-   Title: The overarching conclusion they all share. E.g.: "Tre Interventi Cambieranno la Città nei Prossimi 5 Anni"
-   Content: 3-4 cards, each with: icon, bold title that IS the takeaway, body with specific number + consequence
-   Chapter label: [e.g. "LE SOLUZIONI" or "I BENEFICI"]`,
-
-    `6. PRIORITY ROWS
-   Purpose: Show the urgency ranking — what must happen first and why.
-   Title: The stakes sentence. E.g.: "38 Alberi Rischiano di Cadere: Serve Agire Ora" — never "Analisi del Rischio"
-   Content: All priority_or_risk_items — each row: rank number, bold label with count+%, description of consequence
-   Chapter label: [e.g. "LE URGENZE"]`,
-
-    `7. CHART 2 (different type from Chart 1)
-   Purpose: Show a second dimension of the data — comparison, ranking, or trend.
-   Title: The conclusion this chart proves. E.g.: "Le Zone Nord Concentrano il 70% degli Interventi Urgenti"
-   Content: horizontal bar chart or line chart from charts_data[1] — left: analytical paragraph; right: canvas
-   Chapter label: [e.g. "IL CONFRONTO"]`,
-
-    `8. TWO-COL + INFO BOXES
-   Purpose: Reveal the concrete investment and rules behind the plan.
-   Title: The bottom-line takeaway. E.g.: "€ 46.340 per Salvare 2.163 Alberi: un Investimento che Si Ripaga"
-   Content: left: feature list from benefits_outcomes or rules_principles; right: 2-3 info-boxes with exact investment_costs amounts
-   Chapter label: [e.g. "IL PIANO"]`,
-
-    `9. PROCESS FLOW
-   Purpose: Show HOW it works — the step-by-step path to results.
-   Title: The outcome of the process. E.g.: "In 4 Fasi: dal Censimento alla Città Sicura"
-   Content: process-flow component with all process_steps — each step: icon, title that IS the result of that step, body with specific data
-   Chapter label: [e.g. "IL METODO"]`,
-
-    `10. TIMELINE or RULE CARDS
-   Purpose: Show the historical path or the governing principles.
-   Title: The meaning of the timeline or rules. E.g.: "Dal 2019 al 2024: Come è Cambiata la Città" OR "La Regola 10-20-30: Biodiversità per Legge"
-   Content: timeline items from timeline_events OR rule-cards from rules_principles
-   Chapter label: [e.g. "IL PERCORSO" or "LE REGOLE"]`,
-  ];
-
-  const highlight = `[N-1]. HIGHLIGHT — KEY MESSAGE MOMENT
-   Purpose: The emotional peak — the ONE thing the audience must remember.
-   Title: (no section title here — just the blockquote)
-   Content: section-highlight (gradient bg) + blockquote with the most powerful quote from key_quotes OR a constructed summary sentence that is THE ARROW: the single key takeaway of the entire presentation
-   Chapter label: "IL MESSAGGIO"`;
-
-  const closing = `[N]. CLOSING + CONTACTS
-   Purpose: Turn understanding into action — what should the audience do next?
-   Title: A forward-looking call. E.g.: "Il Verde Urbano non Aspetta: Ecco i Prossimi Passi" — never just "Conclusioni"
-   Content: 2-sentence summary using conclusions array (specific facts only) + contact-grid with all contacts fields
-   Chapter label: [e.g. "IL PROSSIMO PASSO"]`;
-
-  const sections: string[] = [...core];
+  // Select sections based on count
+  let selected: string[];
 
   if (count <= 6) {
-    // Squeeze: combine some sections
-    sections.push(middle6[0]); // CARDS
-    sections.push(middle6[1]); // PRIORITY ROWS
-    sections.push(highlight.replace('[N-1]', '5'));
-    sections.push(closing.replace('[N]', '6'));
+    selected = [fullArc[0], fullArc[3], fullArc[4], fullArc[7], fullArc[10], fullArc[14]];
   } else if (count <= 8) {
-    sections.push(middle6[0]); // CARDS
-    sections.push(middle6[2]); // CHART 2
-    sections.push(middle6[1]); // PRIORITY ROWS
-    sections.push(highlight.replace('[N-1]', '7'));
-    sections.push(closing.replace('[N]', '8'));
+    selected = [fullArc[0], fullArc[1], fullArc[3], fullArc[4], fullArc[7], fullArc[8], fullArc[13], fullArc[14]];
   } else if (count <= 10) {
-    sections.push(middle6[0]); // CARDS
-    sections.push(middle6[1]); // PRIORITY ROWS
-    sections.push(middle6[2]); // CHART 2
-    sections.push(middle6[3]); // TWO-COL
-    sections.push(highlight.replace('[N-1]', '9'));
-    sections.push(closing.replace('[N]', '10'));
+    selected = [fullArc[0], fullArc[1], fullArc[3], fullArc[4], fullArc[5], fullArc[7], fullArc[8], fullArc[10], fullArc[13], fullArc[14]];
   } else if (count <= 12) {
-    sections.push(middle6[0]); // CARDS
-    sections.push(middle6[1]); // PRIORITY ROWS
-    sections.push(middle6[2]); // CHART 2
-    sections.push(middle6[3]); // TWO-COL
-    sections.push(middle6[5]); // TIMELINE or RULE CARDS
-    sections.push(middle6[4]); // PROCESS FLOW
-    sections.push(highlight.replace('[N-1]', '11'));
-    sections.push(closing.replace('[N]', '12'));
+    selected = [fullArc[0], fullArc[1], fullArc[2], fullArc[3], fullArc[4], fullArc[5], fullArc[7], fullArc[8], fullArc[9], fullArc[10], fullArc[13], fullArc[14]];
   } else {
-    // 15+: use all middle sections
-    sections.push(...middle6);
-    // Fill remaining slots with extra content sections
-    for (let i = core.length + middle6.length + 1; i <= count - 2; i++) {
-      sections.push(`${i}. CONTENT SECTION — Use remaining main_topics or additional_lists not yet covered. Same rules: title = conclusion, bullets = bold fact → explanation.`);
+    selected = fullArc.slice(0, count);
+    // If count > 15, repeat content sections
+    while (selected.length < count) {
+      selected.splice(selected.length - 2, 0, `ADDITIONAL CONTENT — Use remaining main_topics, additional_lists, or benefits_outcomes not yet covered. Same section rules apply.`);
     }
-    sections.push(highlight.replace('[N-1]', `${count - 1}`));
-    sections.push(closing.replace('[N]', `${count}`));
   }
 
-  return sections.map((s, i) => (s.startsWith(`${i + 1}.`) ? s : `${i + 1}. ${s.replace(/^\[?\d+\]?\.?\s*/, '')}`)).join('\n\n');
+  return selected.map((s, i) => `${i + 1}. ${s}`).join('\n\n');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -655,110 +819,100 @@ function buildHtmlPrompt(
   const css = buildDesignSystem(palette, config.style, fonts);
   const isLight = config.style === 'minimal' || config.style === 'professional';
   const defaultSection = isLight ? 'section-white' : 'section-dark';
+  const altSection = isLight ? 'section-light' : 'section-dark';
 
-  const minCharts = config.slideCount >= 8 ? 3 : config.slideCount >= 6 ? 2 : 1;
+  const minCharts = config.slideCount >= 8 ? 2 : 1;
   const labelColor = isLight ? '#0f1e35' : palette.text;
   const gridColor = isLight ? '#e5e7eb' : 'rgba(255,255,255,0.08)';
   const tickColor = isLight ? '#5a6a7e' : 'rgba(255,255,255,0.6)';
 
-  return `You are a world-class information designer and narrative strategist.
-Create a premium, data-dense scrollable HTML presentation that tells a STORY — not just displays data.
-Think: award-winning annual report × Gamma.app × NYT data journalism. Real data, bold assertions, emotional arc.
+  return `You are a world-class information designer creating a scrollable HTML presentation.
+The result must feel like the best Gamma.app presentation you've ever seen: rich narrative, beautiful data, emotional arc, and crystal-clear communication.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-HARD CONSTRAINTS — VIOLATION = FAILURE
+HARD CONSTRAINTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️ SECTIONS: EXACTLY ${config.slideCount} <section class="section ..."> elements. Count before outputting.
-⚠️ CHARTS: At least ${minCharts} Chart.js chart(s) using REAL numbers from extracted data.
-⚠️ CONTENT: Every sentence must contain a specific fact, number, or name. ZERO filler.
-⚠️ TITLES: Every section title must be a CONCLUSION/ASSERTION — never a generic label.
+⚠️ SECTIONS: EXACTLY ${config.slideCount} <section class="section ..."> elements. Count them.
+⚠️ CHARTS: At least ${minCharts} Chart.js chart(s) with REAL data from extracted JSON.
+⚠️ NO FILLER: Every sentence must contain a specific fact, number, or name from the document.
+⚠️ USE ALL DATA: Every field in the extracted JSON must appear somewhere in the presentation.
 
 LANGUAGE: ${lang}
-USE CASE: ${config.useCase.toUpperCase()} — Narrative tone: ${narrative.tone}
+USE CASE: ${config.useCase.toUpperCase()}
+NARRATIVE TONE: ${narrative.tone}
 NARRATIVE ARC: ${narrative.arc}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EXTRACTED DATA (USE ALL OF THIS — NONE CAN BE SKIPPED)
+EXTRACTED DATA — USE EVERYTHING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${extractedData}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-STEP 0 — BEFORE WRITING ANY HTML, DEFINE YOUR NARRATIVE DNA:
-(Think this through internally — it shapes every title and section)
-
-THE ARROW (the one thing the audience must remember):
-→ Extract the single most important conclusion from the data. Write it as: "[Entity] [verb] [specific number/outcome]."
-→ This arrow will appear as the HIGHLIGHT blockquote in section N-1.
-
-THE CONTRAST (current state vs. ideal state):
-→ What is the problem or gap revealed by this document?
-→ What does the future look like if the recommendations are followed?
-→ Weave this contrast through the first 3 sections.
-
-NARRATIVE LABELS (chapter-label text for each section):
-→ Choose from: ${narrative.labels.map(l => `"${l}"`).join(', ')}
-→ Each label must describe WHERE we are in the story, not just the data type.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TITLE RULES — READ CAREFULLY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Every section title (h1, h2) must be a TAKEAWAY — the conclusion of that section stated as a fact.
-
-❌ BAD (generic labels — FORBIDDEN):
-- "Numeri Chiave" / "Key Numbers"
-- "Analisi del Rischio" / "Risk Analysis"
-- "Distribuzione Dati" / "Data Overview"
-- "Conclusioni" / "Conclusions"
-- "Come Funziona" / "How It Works"
-
-✅ GOOD (assertions with data):
-- "2.163 Alberi Producono 8.500 Tonnellate di CO₂ l'Anno"
-- "38 Alberi Rischiano di Cadere: Serve Intervenire Subito"
-- "Il 60% del Verde È Concentrato in 3 Specie — Un Rischio Sistemico"
-- "Tre Fasi per Mettere in Sicurezza la Città Entro il 2026"
-- "€ 46.340 Investiti Ora Evitano Danni da Milioni"
-
-Rule: if the title could apply to ANY document, rewrite it. Titles must be UNIQUE to this specific data.
+DATA → COMPONENT MAPPING:
+- document_purpose.motivation_pillars → motivation-grid (WHY section)
+- methodology.levels → method-grid (METHODOLOGY section)
+- key_stats → stats-grid (ALL entries, each with WHY context)
+- charts_data → Chart.js canvases (one per entry, exact values)
+- main_topics.key_points → feature-list bullets (bold fact — explanation)
+- priority_or_risk_items → priority-list (ALL entries, rank + count + %)
+- objections_faq → faq-list (ALL questions + answers)
+- benefits → benefit-grid (icon + title + desc)
+- next_steps → roadmap-list (ALL steps numbered)
+- process_steps → process-flow or cards
+- rules_principles → rule-grid
+- investment_costs → info-box (exact amounts)
+- timeline_events → timeline (if ≥3)
+- key_quotes → blockquote HIGHLIGHT + inline-quote in hero
+- conclusions → closing body text (2 sentences with specific facts)
+- contacts → contact-grid
+- team_credits → closing mention
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CONTENT DENSITY RULES
+TITLE STRATEGY — TWO MODES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-ASSERTION-EVIDENCE structure for every section:
-1. ASSERTION: The section title IS the conclusion (assertion). Bold, specific, with a number.
-2. EVIDENCE: The body text + visual prove the assertion with supporting data.
-3. FOCAL POINT: Every section has ONE dominant element the eye goes to first (huge stat, bold quote, chart).
+MODE A — ASSERTION TITLE (for data/results sections):
+Use when the section SHOWS data or results. Title = the CONCLUSION the data proves.
+❌ "Numeri Chiave" → ✅ "2.163 Alberi Garantiscono 36,6 m² di Verde per Abitante"
+❌ "Distribuzione Specie" → ✅ "Tre Specie Coprono il 60% — Biodiversità a Rischio"
+❌ "Analisi del Rischio" → ✅ "38 Alberi Richiedono Abbattimento Immediato"
 
-Writing rules:
-- Body text: MAX 2 sentences per paragraph. Dense with facts. Exact numbers always.
-- Bullets: <strong>Bold specific fact or number</strong> — consequence or explanation.
-- Stats: always show unit + context: "36,6 m²/ab — doppio della media UE"
-- Cards: title = the takeaway conclusion; body = the proof with a specific number.
-- FORBIDDEN phrases: "This section covers", "Overview of", "We will examine", "In questa sezione", "Come possiamo vedere"
+MODE B — DESCRIPTIVE TITLE (for educational/explanatory sections):
+Use when the section EXPLAINS a concept or ANSWERS a question. Can be a question or description.
+✅ "Perché abbiamo Censito 2.163 Alberi?" (WHY section)
+✅ "Come Valutiamo il Rischio: il Protocollo Aretè®" (METHODOLOGY section)
+✅ "Le Domande dei Cittadini: Rispondiamo con i Dati" (FAQ section)
+✅ "Quattro Modi per Proteggere ogni Albero" (INTERVENTIONS section)
 
-MANDATORY DATA MAPPING:
-- key_stats → STATS GRID section: ALL entries, each with gradient number + unit + context of WHY it matters
-- charts_data → Chart.js: each entry gets its own chart canvas with EXACT labels and values from the JSON
-- main_topics → Content sections: each key_point becomes one feature-list bullet (bold fact → explanation)
-- priority_or_risk_items → PRIORITY ROWS: ALL entries with rank, count, percentage, consequence
-- process_steps → PROCESS FLOW: each step title = the RESULT of that step (not just its name)
-- rules_principles → RULE CARDS: value large, label below, description = why this threshold matters
-- benefits_outcomes → CARDS or feature list: each as a bold outcome with a measurable number
-- investment_costs → INFO BOX: exact amounts, breakdown, ROI if available
-- timeline_events → TIMELINE: if ≥3 events, use them in chronological order
-- key_quotes → HIGHLIGHT blockquote: use the most powerful one as THE ARROW moment
-- contacts → CLOSING contact-grid: all available fields
-- conclusions → CLOSING body text: 2 sentences, specific facts from conclusions array
+RULE: Data sections = assertion. Educational/narrative sections = descriptive/question.
+ALWAYS avoid: "Numeri Chiave", "Overview", "Conclusioni", "Analisi", "Dati".
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION PLAN (${config.slideCount} sections — each with purpose + content type)
+CONTENT QUALITY RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Body text: MAX 2 sentences. Dense facts. Exact numbers always.
+Feature-list bullets: <strong>[exact number or fact]</strong> — [consequence or meaning]
+Stat items: number + unit + WHY it matters (not just what it is)
+Card bodies: <strong>[fact]</strong> — [why this matters for the audience]
+FAQ answers: conversational, reassuring, specific. Address the real concern.
+Benefit items: citizen-centered. "You gain..." not "This produces..."
+Roadmap steps: each title = the OUTCOME of that step, not just its activity name
+FORBIDDEN: "In questa sezione", "Come possiamo vedere", "This overview", "We will examine", "È importante notare"
+
+Section alternation (to avoid visual monotony):
+- Alternate light/dark sections: ${defaultSection} → ${altSection} → ${defaultSection} → etc.
+- Charts go in ${defaultSection} sections for contrast
+- HIGHLIGHT always uses section-highlight class
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION PLAN (EXACTLY ${config.slideCount} sections)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ${buildSectionPlan(config.slideCount, config.useCase)}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-HTML SHELL (use exactly this structure)
+HTML SHELL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 <!DOCTYPE html>
@@ -766,7 +920,7 @@ HTML SHELL (use exactly this structure)
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>[DOCUMENT TITLE]</title>
+<title>[Document Title]</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="${fonts.googleFontsUrl}" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/material-icons@1.13.12/iconfont/material-icons.min.css">
@@ -776,18 +930,13 @@ ${css}
 </style>
 </head>
 <body>
-
-[YOUR ${config.slideCount} SECTIONS HERE]
-
+[ALL ${config.slideCount} SECTIONS HERE]
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Scroll animations
   const obs = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) e.target.classList.add('aos-animate');
   }), { threshold: 0.08 });
   document.querySelectorAll('[data-aos]').forEach(el => obs.observe(el));
-
-  // Animate progress bars
   const barObs = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) {
       const fill = e.target.querySelector('.progress-fill');
@@ -795,8 +944,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }), { threshold: 0.3 });
   document.querySelectorAll('.progress-item').forEach(el => barObs.observe(el));
-
-  // [ALL CHART.JS INITIALIZATIONS HERE — one per charts_data entry]
+  // [ALL CHART INITIALIZATIONS HERE]
 });
 </script>
 </body>
@@ -806,50 +954,83 @@ document.addEventListener('DOMContentLoaded', () => {
 COMPONENT REFERENCE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-### HERO — The hook. Opens with the biggest, boldest claim.
+### HERO
 <section class="section ${defaultSection} hero">
   <div class="section-inner">
-    <div class="hero-badge"><span class="material-icons" style="font-size:0.9em">eco</span> ENTITY NAME</div>
-    <!-- Title IS the arrow — the one key message. Make it unforgettable. -->
-    <h1 class="section-title"><span class="gradient">[Key insight with biggest number]</span><br>[Supporting fact or contrast]</h1>
-    <p class="section-body">[2 sentences. Each sentence must contain a specific number or named fact from summary.]</p>
-    <div class="tags"><span class="tag">[tag from tags array]</span><span class="tag">[tag]</span><span class="tag">[tag]</span></div>
+    <div class="hero-badge"><span class="material-icons" style="font-size:0.9em">park</span> [entity name]</div>
+    <h1 class="section-title"><span class="gradient">[Hook with biggest number/finding]</span><br>[Supporting fact or contrast]</h1>
+    <p class="section-body">[2 sentences, 2+ specific facts from summary]</p>
+    <!-- Include inline-quote if opening_quote exists -->
+    <div class="inline-quote">[opening_quote text]</div>
+    <div class="tags"><span class="tag">[tag]</span><span class="tag">[tag]</span></div>
   </div>
 </section>
 
-### STATS GRID — Scale shock. Every stat shows WHY it matters.
-<section class="section section-white">
+### WHY / MOTIVATION
+<section class="section [alt-section]">
   <div class="section-inner">
-    <div class="chapter-label">[NARRATIVE LABEL e.g. "I NUMERI CHE CAMBIANO TUTTO"]</div>
-    <!-- Title = the conclusion these numbers prove together -->
-    <h2 class="section-title">[Assertion title with key number] <span class="accent">[key word]</span></h2>
-    <p class="section-body">[1-2 sentences: what do these numbers collectively mean? What is the implication?]</p>
-    <div class="stats-grid" data-aos="zoom-in">
-      <div class="stat-item">
-        <span class="stat-number">2.163</span>
-        <div class="stat-label">Alberi censiti</div>
-        <!-- Context explains WHY this number matters — not just what it is -->
-        <div class="stat-desc">36,6 m² per abitante — doppio media UE</div>
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <h2 class="section-title">[Descriptive/question title: "Perché abbiamo...?"]</h2>
+    <p class="section-body">[The problem or gap this addresses. 1-2 sentences with specific facts.]</p>
+    <div class="motivation-grid" data-aos="fade-up">
+      <div class="motivation-card">
+        <div class="motivation-icon">[icon from motivation_pillars]</div>
+        <div class="motivation-title">[title]</div>
+        <div class="motivation-desc">[desc — specific, citizen-centered]</div>
       </div>
-      <!-- ONE STAT-ITEM PER key_stats ENTRY — ALL entries, no exceptions -->
+      <!-- one card per document_purpose.motivation_pillars entry -->
     </div>
   </div>
 </section>
 
-### CHART SECTION — Visual proof of the key distribution.
+### METHODOLOGY
+<section class="section [section-color]">
+  <div class="section-inner">
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <h2 class="section-title">[Descriptive title: "Come abbiamo..." or "Il metodo: ..."]</h2>
+    <p class="section-body">[methodology.overview — how it was done, who, when, with what protocol]</p>
+    <div class="method-grid" data-aos="fade-up">
+      <div class="method-card">
+        <span class="method-icon">[icon]</span>
+        <div class="method-number">[number]</div>
+        <div class="method-title">[name]</div>
+        <div class="method-desc">[desc]</div>
+        <div class="method-result">→ [result]</div>
+      </div>
+      <!-- one card per methodology.levels entry -->
+    </div>
+  </div>
+</section>
+
+### STATS GRID
 <section class="section section-white">
   <div class="section-inner">
     <div class="chapter-label">[NARRATIVE LABEL]</div>
-    <!-- Title = the insight THIS SPECIFIC chart proves -->
-    <h2 class="section-title">[What this chart reveals] <span class="accent">[key number]</span></h2>
+    <h2 class="section-title">[Assertion: what these numbers collectively prove] <span class="accent">[key word]</span></h2>
+    <p class="section-body">[1-2 sentences: what do these numbers mean together? What is implied?]</p>
+    <div class="stats-grid" data-aos="zoom-in">
+      <div class="stat-item">
+        <span class="stat-number">2.163</span>
+        <div class="stat-label">Alberi censiti</div>
+        <!-- WHY it matters — not just what it is -->
+        <div class="stat-desc">36,6 m² per abitante — doppio media UE</div>
+      </div>
+      <!-- ONE stat-item PER key_stats entry — all of them -->
+    </div>
+  </div>
+</section>
+
+### CHART SECTION
+<section class="section [section-color]">
+  <div class="section-inner">
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <h2 class="section-title">[Assertion: what this chart reveals] <span class="accent">[key finding]</span></h2>
     <div class="two-col" style="align-items:center">
       <div data-aos="fade-right">
-        <!-- Assertion paragraph: state the conclusion before showing proof -->
-        <p class="section-body">[2 sentences: the analytical conclusion drawn from this chart's data.]</p>
+        <p class="section-body">[Analytical conclusion from the chart data. 2 sentences.]</p>
         <ul class="feature-list">
-          <li><strong>[31,07%]</strong> — [Tilia spp.: specific consequence or meaning]</li>
-          <li><strong>[20,11%]</strong> — [Acer spp.: specific consequence]</li>
-          <!-- 3-5 bullets, each with exact chart label+value as the BOLD part -->
+          <li><strong>[31,07%]</strong> — [Tilia: what this means, consequence]</li>
+          <!-- 4-5 bullets, each = exact chart value + analytical meaning -->
         </ul>
       </div>
       <div data-aos="fade-left">
@@ -862,199 +1043,210 @@ COMPONENT REFERENCE
   </div>
 </section>
 
-### CARDS — Break down complex info into memorable takeaways.
-<section class="section section-dark">
+### PRIORITY ROWS
+<section class="section [section-color]">
   <div class="section-inner">
     <div class="chapter-label">[NARRATIVE LABEL]</div>
-    <!-- Title = the overarching conclusion all cards together prove -->
-    <h2 class="section-title">[What these N things share as a conclusion] <span class="accent">[key word]</span></h2>
-    <div class="cards-grid">
-      <div class="card" data-aos="fade-up" data-aos-delay="0">
-        <span class="card-icon"><span class="material-icons" style="color:var(--accent)">eco</span></span>
-        <!-- Card title = the takeaway of THIS specific card -->
-        <div class="card-title">[Specific takeaway: what this one does or means]</div>
-        <div class="card-body"><strong>[Exact number or fact]</strong> — [consequence or why it matters].</div>
-      </div>
-      <!-- 3-4 cards total -->
-    </div>
-  </div>
-</section>
-
-### PRIORITY ROWS — Urgency ranking. Every row: what, how many, why urgent.
-<section class="section section-white">
-  <div class="section-inner">
-    <div class="chapter-label">[NARRATIVE LABEL e.g. "LE URGENZE"]</div>
-    <!-- Title = the stakes: what happens if we don't act -->
-    <h2 class="section-title">[N items at risk + consequence if ignored] <span class="accent">[key word]</span></h2>
-    <p class="section-body">[What is the classification system? What do these categories mean for action?]</p>
+    <h2 class="section-title">[Assertion: stakes + urgency with numbers]</h2>
+    <p class="section-body">[How many were analyzed? What does each level mean for action?]</p>
     <div class="priority-list">
       <div class="priority-row" data-aos="fade-up" data-aos-delay="0">
         <div class="priority-num">1</div>
         <div class="priority-content">
-          <!-- Title = label from data; body = count + % + specific consequence -->
-          <div class="priority-title">[priority label]</div>
-          <div class="priority-body"><strong>[count] ([percentage]%)</strong> — [what this means in practice].</div>
+          <div class="priority-title">[label from data]</div>
+          <div class="priority-body"><strong>[count] ([percentage]%)</strong> — [what this means in practice for citizens].</div>
         </div>
         <div class="priority-badge">[percentage]%</div>
       </div>
-      <!-- ONE ROW PER priority_or_risk_items ENTRY — ALL entries -->
+      <!-- ONE row PER priority_or_risk_items entry — ALL of them -->
     </div>
   </div>
 </section>
 
-### PROCESS FLOW — The path to results. Each step title = its outcome.
-<section class="section section-dark">
+### FAQ
+<section class="section [section-color]">
   <div class="section-inner">
-    <div class="chapter-label">[NARRATIVE LABEL e.g. "IL METODO"]</div>
-    <!-- Title = the final outcome the whole process leads to -->
-    <h2 class="section-title">[What the process achieves in total] <span class="accent">[key outcome]</span></h2>
-    <div class="process-flow" data-aos="fade-up">
-      <div class="process-step">
-        <div class="process-step-icon">🔍</div>
-        <!-- Step title = what is ACHIEVED in this step, not just its name -->
-        <div class="process-step-title">[Outcome of this step]</div>
-        <div class="process-step-body">[Specific description: what happens, who does it, what data is produced.]</div>
+    <div class="chapter-label">LE DOMANDE</div>
+    <h2 class="section-title">[Inviting title: "Le Domande dei Cittadini" or "Rispondiamo alle Vostre Domande"]</h2>
+    <p class="section-body">[Why these questions matter. 1 sentence.]</p>
+    <div class="faq-list">
+      <div class="faq-item" data-aos="fade-up">
+        <div class="faq-question">[question from objections_faq]</div>
+        <div class="faq-answer">[answer — conversational, factual, reassuring]</div>
       </div>
-      <!-- one step per process_steps entry -->
+      <!-- one faq-item per objections_faq entry -->
     </div>
   </div>
 </section>
 
-### TWO-COL + INFO BOXES — Investment and rules side by side.
-<section class="section section-dark">
-  <div class="section-inner">
-    <div class="two-col">
-      <div data-aos="fade-right">
-        <div class="chapter-label">[NARRATIVE LABEL]</div>
-        <!-- Title = the bottom-line conclusion -->
-        <h2 class="section-title">[Conclusion about investment or rules] <span class="accent">[number or key word]</span></h2>
-        <ul class="feature-list">
-          <li><strong>[Specific benefit or rule value]</strong> — [why it matters, consequence]</li>
-          <!-- 4-5 bullets from benefits_outcomes or rules_principles -->
-        </ul>
-      </div>
-      <div data-aos="fade-left">
-        <!-- One info-box per investment_costs entry -->
-        <div class="info-box">
-          <div class="info-box-icon">💰</div>
-          <div>
-            <div class="info-box-title">[Investment label]</div>
-            <div class="info-box-body"><strong>[exact amount]</strong> — [what this covers, ROI if available].</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-### RULE CARDS — Each rule as a bold number/value + why it exists.
-<section class="section section-dark">
+### BENEFIT GRID
+<section class="section [section-color]">
   <div class="section-inner">
     <div class="chapter-label">[NARRATIVE LABEL]</div>
-    <h2 class="section-title">[The principle these rules enforce — as a conclusion] <span class="accent">[key number]</span></h2>
-    <p class="section-body">[Why these thresholds exist: what risk do they prevent?]</p>
-    <div class="rule-grid" data-aos="zoom-in">
-      <div class="rule-card">
-        <div class="rule-number">[value from rules_principles]</div>
-        <div class="rule-label">[label]</div>
-        <div class="rule-desc">[explanation: what happens if this is violated?]</div>
+    <h2 class="section-title">[Assertion: the most impressive benefit with a number]</h2>
+    <p class="section-body">[Why these benefits matter for citizens. 1-2 sentences.]</p>
+    <div class="benefit-grid" data-aos="fade-up">
+      <div class="benefit-item">
+        <div class="benefit-icon">[icon from benefits]</div>
+        <div class="benefit-title">[title]</div>
+        <div class="benefit-desc">[desc — specific, tangible, citizen-centered]</div>
       </div>
-      <!-- one card per rules_principles entry -->
+      <!-- one item per benefits entry -->
     </div>
   </div>
 </section>
 
-### TIMELINE — The historical arc. Each event = a turning point.
-<section class="section section-white">
+### ROADMAP
+<section class="section [section-color]">
   <div class="section-inner">
-    <div class="chapter-label">[NARRATIVE LABEL e.g. "IL PERCORSO"]</div>
-    <!-- Title = what the full timeline collectively shows -->
-    <h2 class="section-title">[What changed from start to end of timeline] <span class="accent">[year range]</span></h2>
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <h2 class="section-title">[Forward-looking vision title with a timeframe or number]</h2>
+    <p class="section-body">[What the roadmap achieves in total. 1-2 sentences.]</p>
+    <div class="roadmap-list" data-aos="fade-up">
+      <div class="roadmap-step">
+        <div class="roadmap-num">1</div>
+        <div class="roadmap-content">
+          <div class="roadmap-title">[step title = the OUTCOME of this step]</div>
+          <div class="roadmap-desc">[what specifically happens, who, any deadline or number]</div>
+        </div>
+      </div>
+      <!-- one step per next_steps entry -->
+    </div>
+  </div>
+</section>
+
+### CARDS (for interventions, solutions, or topic breakdown)
+<section class="section [section-color]">
+  <div class="section-inner">
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <h2 class="section-title">[Overarching conclusion or descriptive title]</h2>
+    <div class="cards-grid">
+      <div class="card" data-aos="fade-up" data-aos-delay="0">
+        <span class="card-icon">[emoji or material icon]</span>
+        <div class="card-title">[Card takeaway: outcome of this intervention/step]</div>
+        <div class="card-body"><strong>[specific number or fact]</strong> — [consequence or description].</div>
+      </div>
+    </div>
+    <!-- Optional: info-box for investment_costs -->
+    <div class="info-box" style="margin-top:24px">
+      <div class="info-box-icon">💰</div>
+      <div>
+        <div class="info-box-title">[investment label]</div>
+        <div class="info-box-body"><strong>[exact amount]</strong> — [what this covers].</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+### RULE CARDS
+<section class="section [section-color]">
+  <div class="section-inner">
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <h2 class="section-title">[What these rules prevent or ensure] <span class="accent">[key number]</span></h2>
+    <p class="section-body">[Why these thresholds exist. What happens if violated.]</p>
+    <div class="rule-grid" data-aos="zoom-in">
+      <div class="rule-card">
+        <div class="rule-number">[value]</div>
+        <div class="rule-label">[label]</div>
+        <div class="rule-desc">[consequence if this threshold is exceeded]</div>
+      </div>
+    </div>
+    <!-- inline-quote with key_quotes if a relevant quote exists -->
+  </div>
+</section>
+
+### TIMELINE
+<section class="section [section-color]">
+  <div class="section-inner">
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <h2 class="section-title">[What the timeline arc shows collectively]</h2>
     <div class="timeline">
       <div class="timeline-item" data-aos="fade-up">
         <div class="timeline-dot"></div>
         <div class="timeline-date">[date]</div>
-        <!-- Event title = why this moment mattered -->
-        <div class="timeline-title">[Significance of this event — not just its name]</div>
-        <div class="timeline-body">[What specifically happened, what changed, any numbers involved.]</div>
+        <div class="timeline-title">[significance of this moment, not just its name]</div>
+        <div class="timeline-body">[what changed, what was produced, any numbers]</div>
       </div>
-      <!-- one item per timeline_events entry -->
     </div>
   </div>
 </section>
 
-### HIGHLIGHT — The emotional peak. THE ARROW moment.
+### HIGHLIGHT
 <section class="section section-highlight">
   <div class="section-inner" style="text-align:center">
-    <div class="chapter-label" style="color:rgba(255,255,255,0.7)">IL MESSAGGIO</div>
-    <!-- This IS the arrow — the single most important takeaway of the whole presentation -->
-    <!-- Use best key_quote OR construct: "[Entity] [verb] [specific outcome] — [implication for the audience]" -->
-    <blockquote>[The arrow: the one sentence the audience will remember. Specific. Bold. With a number if possible.]</blockquote>
+    <div class="chapter-label" style="color:rgba(255,255,255,0.7);justify-content:center">IL MESSAGGIO</div>
+    <blockquote>[THE ARROW: the single sentence the audience will remember. Use best key_quote OR craft: "[Entity] [action] [outcome] — [why this matters for citizens]". Must have a specific fact.]</blockquote>
   </div>
 </section>
 
-### CLOSING — Forward-looking. What should happen next?
+### CLOSING
 <section class="section section-dark">
   <div class="section-inner">
-    <div class="chapter-label">[NARRATIVE LABEL e.g. "IL PASSO SUCCESSIVO"]</div>
-    <!-- Title = what needs to happen NOW — forward-looking, action-oriented -->
-    <h2 class="section-title">[Call to action or next-step conclusion — never just "Conclusioni"] <span class="accent">[key word]</span></h2>
-    <!-- 2 sentences using conclusions array — specific facts that prove why action is needed now -->
-    <p class="section-body">[Conclusion sentence 1 with specific number]. [Conclusion sentence 2 with specific outcome or deadline].</p>
+    <div class="chapter-label">[NARRATIVE LABEL]</div>
+    <h2 class="section-title">[Forward-looking, action title] <span class="accent">[key word]</span></h2>
+    <p class="section-body">[2 sentences from conclusions — specific facts, what happens next]</p>
+    <!-- Optional: team_credits mention if available -->
     <div class="contact-grid" data-aos="fade-up">
-      <div class="contact-item"><div class="contact-type">Ente</div><div class="contact-value">[contacts.entity]</div></div>
-      <!-- one item per contacts field that has a value -->
+      <div class="contact-item">
+        <div class="contact-type">Ente</div>
+        <div class="contact-value">[contacts.entity]</div>
+      </div>
+      <!-- one contact-item per contacts field that has a non-empty value -->
     </div>
   </div>
 </section>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CHART.JS INITIALIZATION TEMPLATES
+CHART.JS TEMPLATES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// Doughnut/Pie — use EXACT labels and values from charts_data JSON
+// Doughnut/Pie
 new Chart(document.getElementById('chart1'), {
   type: 'doughnut',
   data: {
-    labels: [/* exact labels from charts_data[0].labels */],
-    datasets: [{ data: [/* exact values from charts_data[0].values */], backgroundColor: ['${palette.primary}', '${palette.secondary}', '${palette.primary}99', '${palette.secondary}66', '${palette.primary}44', '${palette.secondary}33'], borderWidth: 0, hoverOffset: 8 }]
+    labels: [/* exact labels from charts_data[n].labels */],
+    datasets: [{ data: [/* exact values */], backgroundColor: ['${palette.primary}','${palette.secondary}','${palette.primary}99','${palette.secondary}66','${palette.primary}44','${palette.secondary}33'], borderWidth: 0, hoverOffset: 8 }]
   },
   options: { responsive: true, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '${labelColor}', font: { size: 11 }, padding: 14, boxWidth: 10, borderRadius: 3 } } } }
 });
 
-// Horizontal Bar — for rankings, comparisons
+// Horizontal Bar
 new Chart(document.getElementById('chart2'), {
   type: 'bar',
-  data: { labels: [/* exact labels */], datasets: [{ data: [/* exact values */], backgroundColor: '${palette.primary}cc', borderRadius: 6, borderSkipped: false }] },
+  data: { labels: [/* labels */], datasets: [{ data: [/* values */], backgroundColor: '${palette.primary}cc', borderRadius: 6, borderSkipped: false }] },
   options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '${tickColor}' }, grid: { color: '${gridColor}' } }, y: { ticks: { color: '${tickColor}' }, grid: { display: false } } } }
 });
 
-// Vertical Bar — for time series or category comparison
+// Vertical Bar
 new Chart(document.getElementById('chart3'), {
   type: 'bar',
-  data: { labels: [/* labels */], datasets: [{ data: [/* values */], backgroundColor: '${palette.primary}cc', borderRadius: 8, borderSkipped: false }] },
+  data: { labels: [/* labels */], datasets: [{ data: [/* values */], backgroundColor: '${palette.primary}cc', borderRadius: 8 }] },
   options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '${tickColor}' }, grid: { color: '${gridColor}' } }, x: { ticks: { color: '${tickColor}' }, grid: { display: false } } } }
 });
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ORIGINAL DOCUMENT (additional context and exact quotes)
+ORIGINAL DOCUMENT (exact quotes and additional context)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Filename: ${filename}
 ${truncatedText}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FINAL SELF-CHECK — verify before outputting
+FINAL SELF-CHECK
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Count <section class="section ..."> elements → EXACTLY ${config.slideCount}? ✓
-2. Every section title is a CONCLUSION/ASSERTION with a specific fact or number? ✓ (no generic labels)
-3. Every key_stats entry appears in the STATS GRID? ✓
-4. Every charts_data entry has a Chart.js canvas + init? ✓ (at least ${minCharts})
-5. Every priority_or_risk_item appears in PRIORITY ROWS with count + percentage? ✓
-6. HIGHLIGHT section contains THE ARROW — the single most important takeaway? ✓
-7. CLOSING title is forward-looking and action-oriented (not "Conclusioni")? ✓
-8. Zero filler sentences — every line contains a specific fact? ✓
+1. Count <section class="section"> → EXACTLY ${config.slideCount}? ✓
+2. WHY/MOTIVATION section uses motivation-grid with real pillars? ✓
+3. METHODOLOGY section explains HOW with method-grid? ✓
+4. All key_stats in stats-grid with WHY context? ✓
+5. At least ${minCharts} Chart.js charts with exact data values? ✓
+6. All priority_or_risk_items in priority-list? ✓
+7. objections_faq entries in faq-list? ✓
+8. benefits in benefit-grid? ✓
+9. next_steps in roadmap-list? ✓
+10. HIGHLIGHT has THE ARROW — one powerful, specific sentence? ✓
+11. CLOSING title is forward-looking, not "Conclusioni"? ✓
+12. Sections alternate light/dark for visual variety? ✓
 
-OUTPUT: Return ONLY raw HTML. No markdown, no backticks, no explanation. Start with <!DOCTYPE html>.`;
+OUTPUT: ONLY raw HTML. No markdown, no backticks. Start with <!DOCTYPE html>.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1077,14 +1269,12 @@ export async function generatePresentation(
   try {
     const extractResult = await model.generateContent(extractionPrompt);
     extractedData = extractResult.response.text().trim();
-    // Strip markdown code blocks if present
     extractedData = extractedData
       .replace(/^```json\s*/i, '')
       .replace(/^```\s*/i, '')
       .replace(/\s*```$/i, '')
       .trim();
   } catch (err) {
-    // If extraction fails, continue with empty extracted data
     onProgress?.('Estrazione dati parziale, continuo...');
     extractedData = '{}';
   }
