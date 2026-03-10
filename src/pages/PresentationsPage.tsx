@@ -119,7 +119,9 @@ export function PresentationsPage() {
 
   useEffect(() => {
     if (!user) return;
+    console.log('[PresentationsPage] fetching for uid:', user.uid);
     fetchAllGenerations(user.uid).then((data) => {
+      console.log('[PresentationsPage] found:', data.length, 'presentations');
       setGens(data);
       setLoading(false);
     });

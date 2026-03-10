@@ -158,6 +158,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   fetchAllGenerations: async (userId) => {
+    // Primary: query by userId with index
     try {
       const q = query(
         collection(db, 'generated_content'),
@@ -165,8 +166,45 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         orderBy('createdAt', 'desc')
       );
       const snap = await getDocs(q);
-      return snap.docs.map((d) => genFromDoc(d.id, d.data() as Record<string, unknown>));
-    } catch {
+      const results = snap.docs.map((d) => genFromDoc(d.id, d.data() as Record<string, unknown>));
+      console.log('[fetchAllGenerations] primary query found:', results.length);
+      if (results.length > 0) return results;
+    } catch (err) {
+      console.warn('[fetchAllGenerations] primary query failed:', err);
+    }
+
+    // Fallback: fetch via user's projects
+    try {
+      const { projects } = get();
+      const projectIds = projects.length > 0
+        ? projects.map((p) => p.id)
+        : await (async () => {
+            const pq = query(collection(db, 'projects'), where('userId', '==', userId));
+            const ps = await getDocs(pq);
+            return ps.docs.map((d) => d.id);
+          })();
+
+      if (projectIds.length === 0) return [];
+
+      // Firestore 'in' operator supports max 30 items per query
+      const chunks: string[][] = [];
+      for (let i = 0; i < projectIds.length; i += 30) chunks.push(projectIds.slice(i, i + 30));
+
+      const allGens: GeneratedContent[] = [];
+      for (const chunk of chunks) {
+        const q = query(
+          collection(db, 'generated_content'),
+          where('projectId', 'in', chunk)
+        );
+        const snap = await getDocs(q);
+        snap.docs.forEach((d) => allGens.push(genFromDoc(d.id, d.data() as Record<string, unknown>)));
+      }
+
+      allGens.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      console.log('[fetchAllGenerations] fallback found:', allGens.length);
+      return allGens;
+    } catch (err) {
+      console.error('[fetchAllGenerations] fallback also failed:', err);
       return [];
     }
   },

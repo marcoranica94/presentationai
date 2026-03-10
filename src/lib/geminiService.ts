@@ -3,7 +3,7 @@ import type { GenerationConfig, PresentationUseCase } from '@/types';
 import { PALETTES } from '@/types';
 
 const USE_CASE_INSTRUCTIONS: Record<PresentationUseCase, string> = {
-  general: `Standard informative document. Clear, structured, balanced.`,
+  general: `Standard informative document. Clear, structured, balanced. Prioritize data over rhetoric.`,
   political: `
 POLITICAL COMMUNICATION:
 - Hero: powerful headline + emotionally resonant subtitle
@@ -22,12 +22,99 @@ MUNICIPAL/INSTITUTIONAL:
 - Last section: contacts, resources, how to find more info`,
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 1: DATA EXTRACTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildExtractionPrompt(text: string): string {
+  return `You are a data extraction expert. Your job is to extract EVERY piece of structured information from this document into JSON.
+
+Be EXHAUSTIVE. Missing a number or fact means a worse presentation. Extract:
+- Every number, percentage, date, monetary value
+- Every list, category, classification
+- Every step, phase, recommendation
+- Every quote, conclusion, contact
+
+DOCUMENT:
+${text}
+
+Return ONLY valid JSON (no markdown, no code blocks, no explanation):
+{
+  "title": "exact document title",
+  "entity": "organization or author name",
+  "doc_type": "report|plan|study|survey|census|policy|other",
+  "year": "year of the document",
+  "summary": "2-3 comprehensive sentences covering all key points",
+  "key_stats": [
+    {"value": "2.163", "unit": "alberi censiti", "context": "su tutto il territorio comunale", "icon": "park"}
+  ],
+  "charts_data": [
+    {
+      "chart_id": "species_distribution",
+      "chart_type": "doughnut",
+      "title": "Composizione per Specie",
+      "labels": ["Tilia 31%", "Acer 20%", "Carpinus 9%"],
+      "values": [31.07, 20.11, 9.2],
+      "unit": "%",
+      "description": "Distribution of tree species in the census",
+      "axis_label": ""
+    }
+  ],
+  "main_topics": [
+    {
+      "topic": "Topic heading",
+      "key_points": [
+        "Specific fact with number: 2.163 alberi totali",
+        "Another specific fact with data"
+      ]
+    }
+  ],
+  "priority_or_risk_items": [
+    {"rank": 1, "label": "Urgenza immediata", "value": 38, "percentage": 6.4, "description": "Descrizione intervento"}
+  ],
+  "timeline_events": [
+    {"date": "2022", "event": "Descrizione dell'evento nel percorso temporale"}
+  ],
+  "rules_principles": [
+    {"value": "Max 10%", "label": "Per singola specie", "explanation": "Regola biodiversità 10-20-30"}
+  ],
+  "benefits_outcomes": [
+    "Benefit or outcome with specific details"
+  ],
+  "investment_costs": [
+    {"label": "Investimento totale", "amount": "€ 46.340", "detail": "Suddiviso in fasi operative"}
+  ],
+  "process_steps": [
+    {"step": 1, "title": "Nome della fase", "description": "Descrizione specifica della fase"}
+  ],
+  "contacts": {
+    "entity": "Nome ente",
+    "website": "",
+    "email": "",
+    "phone": "",
+    "address": ""
+  },
+  "key_quotes": [
+    "Exact important quote from the document"
+  ],
+  "tags": ["tag1", "tag2", "tag3"],
+  "conclusions": [
+    "Specific conclusion with data from the document"
+  ],
+  "additional_lists": [
+    {"title": "List name", "items": ["item 1 with data", "item 2 with data"]}
+  ]
+}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CSS DESIGN SYSTEM
+// ─────────────────────────────────────────────────────────────────────────────
+
 function buildDesignSystem(
   palette: { primary: string; secondary: string; bg: string; text: string },
   style: string
 ): string {
-  // For light styles, use white/light grey backgrounds with accent cards
-  // For dark styles, use dark backgrounds
   const isLight = style === 'minimal' || style === 'professional';
 
   const vars = isLight ? `
@@ -38,8 +125,8 @@ function buildDesignSystem(
   --text-muted: #5a6a7e;
   --text-on-dark: #f0f4f9;
   --text-muted-on-dark: rgba(240,244,249,0.65);
-  --card-bg: color-mix(in srgb, ${palette.primary} 10%, #ffffff);
-  --card-border: color-mix(in srgb, ${palette.primary} 25%, transparent);
+  --card-bg: color-mix(in srgb, ${palette.primary} 8%, #ffffff);
+  --card-border: color-mix(in srgb, ${palette.primary} 22%, transparent);
   --card-bg-dark: rgba(255,255,255,0.07);
   --card-border-dark: rgba(255,255,255,0.12);
   --accent: ${palette.primary};
@@ -121,8 +208,6 @@ body { font-family: var(--body-font); background: var(--bg-base); color: var(--t
 .section-dark  .section-body { color: var(--text-muted-on-dark); }
 
 /* ── HERO ──────────────────────────────────────────── */
-.hero { background: var(--bg-base); }
-.hero-inner { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: center; }
 .hero-badge {
   display: inline-flex; align-items: center; gap: 8px;
   background: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -140,13 +225,13 @@ body { font-family: var(--body-font); background: var(--bg-base); color: var(--t
 }
 
 /* ── STATS ─────────────────────────────────────────── */
-.stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:0; margin-top:36px; border:1px solid var(--card-border); border-radius:16px; overflow:hidden; }
+.stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:0; margin-top:36px; border:1px solid var(--card-border); border-radius:16px; overflow:hidden; }
 .section-dark .stats-grid { border-color: var(--card-border-dark); }
-.stat-item { padding:32px 24px; text-align:center; border-right:1px solid var(--card-border); }
+.stat-item { padding:32px 20px; text-align:center; border-right:1px solid var(--card-border); position:relative; }
 .section-dark .stat-item { border-color: var(--card-border-dark); }
 .stat-item:last-child { border-right:none; }
 .stat-number {
-  font-family: var(--heading-font); font-size: clamp(2.6em,5vw,3.8em); font-weight:900; line-height:1;
+  font-family: var(--heading-font); font-size: clamp(2.4em,5vw,3.6em); font-weight:900; line-height:1;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
   display:block; margin-bottom:8px;
@@ -181,7 +266,7 @@ body { font-family: var(--body-font); background: var(--bg-base); color: var(--t
 .section-white .card-body, .section-light .card-body { color:var(--text-muted); }
 .section-dark  .card-body  { color:var(--text-muted-on-dark); }
 
-/* ── PROCESS FLOW (arrows) ─────────────────────────── */
+/* ── PROCESS FLOW ──────────────────────────────────── */
 .process-flow { display:flex; flex-wrap:wrap; gap:0; margin-top:32px; }
 .process-step {
   flex:1; min-width:180px; padding:22px 28px 22px 36px;
@@ -190,9 +275,7 @@ body { font-family: var(--body-font); background: var(--bg-base); color: var(--t
 }
 .process-step:first-child { clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%); }
 .process-step:last-child  { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 18px 50%); }
-.section-white .process-step, .section-light .process-step {
-  background: var(--card-bg); border:1px solid var(--card-border);
-}
+.section-white .process-step, .section-light .process-step { background: var(--card-bg); border:1px solid var(--card-border); }
 .section-dark .process-step { background: var(--card-bg-dark); border:1px solid var(--card-border-dark); }
 .process-step-icon { font-size:1.8em; margin-bottom:10px; }
 .process-step-title { font-family:var(--heading-font); font-size:0.95em; font-weight:700; margin-bottom:6px; color:var(--accent); }
@@ -200,7 +283,7 @@ body { font-family: var(--body-font); background: var(--bg-base); color: var(--t
 .section-white .process-step-body, .section-light .process-step-body { color:var(--text-muted); }
 .section-dark  .process-step-body  { color:var(--text-muted-on-dark); }
 
-/* ── PRIORITY ROWS (numbered list) ────────────────── */
+/* ── PRIORITY ROWS ─────────────────────────────────── */
 .priority-list { margin-top:28px; display:flex; flex-direction:column; gap:10px; }
 .priority-row {
   display:flex; align-items:flex-start; gap:16px; padding:16px 20px; border-radius:12px;
@@ -209,9 +292,9 @@ body { font-family: var(--body-font); background: var(--bg-base); color: var(--t
 .section-white .priority-row, .section-light .priority-row { background:var(--card-bg); }
 .section-dark  .priority-row { background:var(--card-bg-dark); border-color:var(--card-border-dark); }
 .priority-num {
-  flex-shrink:0; width:32px; height:32px; border-radius:8px;
+  flex-shrink:0; width:36px; height:36px; border-radius:8px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#fff; font-family:var(--heading-font); font-size:0.9em; font-weight:800;
+  color:#fff; font-family:var(--heading-font); font-size:0.85em; font-weight:800;
   display:flex; align-items:center; justify-content:center;
 }
 .priority-content { flex:1; }
@@ -221,10 +304,15 @@ body { font-family: var(--body-font); background: var(--bg-base); color: var(--t
 .priority-body { font-size:0.84em; line-height:1.55; }
 .section-white .priority-body, .section-light .priority-body { color:var(--text-muted); }
 .section-dark  .priority-body  { color:var(--text-muted-on-dark); }
+.priority-badge {
+  flex-shrink:0; padding:2px 10px; border-radius:100px; font-size:0.75em; font-weight:700; align-self:center;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
 
 /* ── INFO BOX ──────────────────────────────────────── */
 .info-box {
-  border-radius:12px; padding:20px 24px; margin:20px 0;
+  border-radius:12px; padding:20px 24px; margin:16px 0;
   border:1px solid var(--card-border); display:flex; gap:14px; align-items:flex-start;
 }
 .section-white .info-box, .section-light .info-box { background:var(--card-bg); }
@@ -273,7 +361,7 @@ blockquote {
   font-family:var(--heading-font); font-size:clamp(1.4em,3vw,2.2em); font-weight:700; line-height:1.35;
   color:#fff; max-width:760px; margin:0 auto; text-align:center; padding:16px 32px; position:relative;
 }
-blockquote::before { content:'"'; font-size:4.5em; color:rgba(255,255,255,0.2); position:absolute; top:-10px; left:0; line-height:1; font-family:Georgia,serif; }
+blockquote::before { content:'\u201C'; font-size:4.5em; color:rgba(255,255,255,0.2); position:absolute; top:-10px; left:0; line-height:1; font-family:Georgia,serif; }
 
 /* ── PROGRESS BAR ──────────────────────────────────── */
 .progress-item { margin-bottom:18px; }
@@ -285,7 +373,7 @@ blockquote::before { content:'"'; font-size:4.5em; color:rgba(255,255,255,0.2); 
 .progress-bar { height:8px; border-radius:100px; overflow:hidden; }
 .section-white .progress-bar, .section-light .progress-bar { background:color-mix(in srgb, var(--accent) 14%, transparent); }
 .section-dark  .progress-bar { background:rgba(255,255,255,0.12); }
-.progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:100px; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:100px; transition: width 1.5s ease; }
 
 /* ── TIMELINE ──────────────────────────────────────── */
 .timeline { position:relative; padding-left:36px; margin-top:28px; }
@@ -301,7 +389,7 @@ blockquote::before { content:'"'; font-size:4.5em; color:rgba(255,255,255,0.2); 
 .section-white .timeline-body, .section-light .timeline-body { color:var(--text-muted); }
 .section-dark  .timeline-body  { color:var(--text-muted-on-dark); }
 
-/* ── RULE CARDS (10-20-30 style) ───────────────────── */
+/* ── RULE CARDS ────────────────────────────────────── */
 .rule-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-top:28px; }
 .rule-card { border-radius:14px; padding:28px 20px; text-align:center; border:2px solid var(--accent); }
 .section-white .rule-card, .section-light .rule-card { background:var(--card-bg); }
@@ -310,6 +398,9 @@ blockquote::before { content:'"'; font-size:4.5em; color:rgba(255,255,255,0.2); 
 .rule-label { font-size:0.84em; font-weight:600; }
 .section-white .rule-label, .section-light .rule-label { color:var(--text-muted); }
 .section-dark  .rule-label { color:var(--text-muted-on-dark); }
+.rule-desc { font-size:0.78em; margin-top:8px; line-height:1.5; }
+.section-white .rule-desc, .section-light .rule-desc { color:var(--text-muted); }
+.section-dark  .rule-desc { color:var(--text-muted-on-dark); }
 
 /* ── CTA / CONTACTS ────────────────────────────────── */
 .contact-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:28px; }
@@ -320,6 +411,18 @@ blockquote::before { content:'"'; font-size:4.5em; color:rgba(255,255,255,0.2); 
 .contact-value { font-size:0.9em; font-weight:500; }
 .section-white .contact-value, .section-light .contact-value { color:#0f1e35; }
 .section-dark  .contact-value { color:var(--text-on-dark); }
+
+/* ── HORIZONTAL BAR COMPARISON ─────────────────────── */
+.hbar-list { margin-top:24px; display:flex; flex-direction:column; gap:14px; }
+.hbar-item { display:flex; align-items:center; gap:12px; }
+.hbar-label { font-size:0.84em; font-weight:600; width:120px; flex-shrink:0; text-align:right; }
+.section-white .hbar-label, .section-light .hbar-label { color:#0f1e35; }
+.section-dark  .hbar-label { color:var(--text-on-dark); }
+.hbar-track { flex:1; height:10px; border-radius:100px; overflow:hidden; }
+.section-white .hbar-track, .section-light .hbar-track { background:color-mix(in srgb, var(--accent) 14%, transparent); }
+.section-dark  .hbar-track { background:rgba(255,255,255,0.1); }
+.hbar-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:100px; }
+.hbar-value { font-size:0.82em; font-weight:700; color:var(--accent); width:60px; flex-shrink:0; }
 
 /* ── AOS ANIMATIONS ────────────────────────────────── */
 [data-aos] { opacity:0; transition:opacity 0.65s ease, transform 0.65s ease; }
@@ -349,20 +452,81 @@ blockquote::before { content:'"'; font-size:4.5em; color:rgba(255,255,255,0.2); 
 `;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION PLAN
+// ─────────────────────────────────────────────────────────────────────────────
+
 function buildSectionPlan(count: number): string {
   const plans: Record<number, string[]> = {
-    6:  ['1. HERO', '2. STATS (3-4 big numbers)', '3. CONTENT + feature list', '4. CHART (real data)', '5. CARDS or PRIORITY LIST', '6. CLOSING'],
-    8:  ['1. HERO', '2. STATS (4 numbers)', '3. CONTENT + feature list', '4. CHART 1 (pie or doughnut)', '5. CARDS (3 cards)', '6. CHART 2 (bar chart)', '7. HIGHLIGHT quote', '8. CLOSING'],
-    10: ['1. HERO', '2. STATS (4 numbers)', '3. CONTENT + feature list', '4. CHART 1', '5. CARDS (3)', '6. PRIORITY ROWS', '7. CHART 2', '8. TWO-COL + info boxes', '9. HIGHLIGHT quote', '10. CLOSING'],
-    12: ['1. HERO', '2. STATS', '3. CONTENT A', '4. CHART 1', '5. CARDS', '6. CONTENT B + feature list', '7. CHART 2', '8. PRIORITY ROWS', '9. TWO-COL + info boxes', '10. RULE CARDS or TIMELINE', '11. HIGHLIGHT quote', '12. CLOSING'],
-    15: ['1. HERO', '2. STATS', '3. CONTENT A', '4. CHART 1 (pie)', '5. CARDS (3)', '6. CONTENT B', '7. CHART 2 (bar)', '8. PRIORITY ROWS', '9. TWO-COL', '10. PROCESS FLOW', '11. TIMELINE or RULE CARDS', '12. CHART 3 (line or doughnut)', '13. INFO BOXES', '14. HIGHLIGHT quote', '15. CLOSING'],
+    6: [
+      '1. HERO — title, entity, key tags, 1-line summary',
+      '2. STATS — 4 big numbers from key_stats with units and context',
+      '3. CONTENT + FEATURE LIST — main topic with all key_points',
+      '4. CHART — real data from charts_data (doughnut or bar)',
+      '5. PRIORITY ROWS or CARDS — use priority_or_risk_items or process_steps',
+      '6. CLOSING — conclusions, contacts, final call to action',
+    ],
+    8: [
+      '1. HERO',
+      '2. STATS — 4-5 numbers',
+      '3. CONTENT A + feature list — topic 1',
+      '4. CHART 1 — pie or doughnut from charts_data[0]',
+      '5. CARDS — 3-4 cards from main topics or benefits',
+      '6. CHART 2 — bar chart from charts_data[1] or different view',
+      '7. HIGHLIGHT — key quote or key finding',
+      '8. CLOSING',
+    ],
+    10: [
+      '1. HERO',
+      '2. STATS — 5 numbers',
+      '3. CONTENT A + feature list',
+      '4. CHART 1',
+      '5. CARDS (3)',
+      '6. PRIORITY ROWS — use all priority_or_risk_items',
+      '7. CHART 2',
+      '8. TWO-COL + info boxes — investment, rules',
+      '9. HIGHLIGHT quote',
+      '10. CLOSING',
+    ],
+    12: [
+      '1. HERO',
+      '2. STATS',
+      '3. CONTENT A + feature list',
+      '4. CHART 1 (pie/doughnut)',
+      '5. CARDS (3-4)',
+      '6. CONTENT B + feature list — second main topic',
+      '7. CHART 2 (bar horizontal)',
+      '8. PRIORITY ROWS — full list',
+      '9. TWO-COL + info boxes — investment costs + benefits',
+      '10. RULE CARDS or TIMELINE',
+      '11. HIGHLIGHT quote',
+      '12. CLOSING',
+    ],
+    15: [
+      '1. HERO',
+      '2. STATS (5 numbers)',
+      '3. CONTENT A + feature list',
+      '4. CHART 1 (pie)',
+      '5. CARDS (3)',
+      '6. CONTENT B + feature list',
+      '7. CHART 2 (bar horizontal)',
+      '8. PRIORITY ROWS',
+      '9. TWO-COL + info boxes',
+      '10. PROCESS FLOW — use process_steps',
+      '11. TIMELINE or RULE CARDS',
+      '12. CHART 3 (line or second doughnut)',
+      '13. CONTENT C — benefits/outcomes with feature list',
+      '14. HIGHLIGHT quote',
+      '15. CLOSING',
+    ],
   };
+
   const base = plans[count] ?? plans[10];
   if (base) return base.join('\n');
-  // Fallback: generate plan dynamically
-  const dynamic = ['1. HERO', '2. STATS'];
+
+  const dynamic: string[] = ['1. HERO', '2. STATS'];
+  const types = ['CONTENT + feature list', 'CHART (real data)', 'CARDS (3)', 'PRIORITY ROWS', 'TWO-COL + info boxes', 'PROCESS FLOW', 'TIMELINE'];
   for (let i = 3; i <= count - 2; i++) {
-    const types = ['CONTENT + feature list', 'CHART (real data)', 'CARDS (3)', 'PRIORITY ROWS', 'TWO-COL + info boxes', 'PROCESS FLOW'];
     dynamic.push(`${i}. ${types[(i - 3) % types.length]}`);
   }
   dynamic.push(`${count - 1}. HIGHLIGHT quote`);
@@ -370,10 +534,19 @@ function buildSectionPlan(count: number): string {
   return dynamic.join('\n');
 }
 
-function buildPrompt(text: string, filename: string, config: GenerationConfig): string {
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 2: HTML GENERATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildHtmlPrompt(
+  text: string,
+  filename: string,
+  config: GenerationConfig,
+  extractedData: string
+): string {
   const palette = PALETTES[config.palette] ?? PALETTES['indigo'];
   const useCaseInstructions = USE_CASE_INSTRUCTIONS[config.useCase];
-  const truncatedText = text.length > 40000 ? text.slice(0, 40000) + '\n[...]' : text;
+  const truncatedText = text.length > 30000 ? text.slice(0, 30000) + '\n[...]' : text;
   const lang = config.language === 'auto'
     ? 'same language as the document (auto-detect)'
     : config.language === 'it' ? 'Italian' : 'English';
@@ -381,46 +554,60 @@ function buildPrompt(text: string, filename: string, config: GenerationConfig): 
   const css = buildDesignSystem(palette, config.style);
   const isLight = config.style === 'minimal' || config.style === 'professional';
   const defaultSection = isLight ? 'section-white' : 'section-dark';
-  const altSection = isLight ? 'section-light' : 'section-dark';
 
-  // Build required section plan based on count
   const minCharts = config.slideCount >= 8 ? 3 : config.slideCount >= 6 ? 2 : 1;
 
-  return `You are a world-class information designer and data journalist. Create a stunning, data-rich scrollable HTML document — think premium annual report meets Gamma.app.
+  return `You are a world-class information designer. Create a premium, data-dense scrollable HTML presentation.
+Think: award-winning annual report meets Gamma.app — packed with real data, beautiful typography, smooth animations.
 
-⚠️ CRITICAL — SECTION COUNT: You MUST generate EXACTLY ${config.slideCount} <section> elements. Not ${config.slideCount - 1}, not ${config.slideCount + 1}. EXACTLY ${config.slideCount}. Count them before you finish. This is non-negotiable.
-
-⚠️ CRITICAL — CHARTS: You MUST include at least ${minCharts} chart section(s) with real Chart.js visualizations using actual data from the document.
+⚠️ SECTION COUNT: EXACTLY ${config.slideCount} <section> elements. Count them. Non-negotiable.
+⚠️ CHARTS: At least ${minCharts} Chart.js chart(s) with REAL data from the EXTRACTED DATA below.
+⚠️ CONTENT DENSITY: Every sentence must contain a specific fact, number, or name from the document. NO filler.
 
 LANGUAGE: ${lang}
 USE CASE: ${config.useCase.toUpperCase()}
 ${useCaseInstructions}
 
----
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXTRACTED DATA (USE ALL OF THIS IN THE PRESENTATION)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${extractedData}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-WRITING QUALITY RULES — follow these strictly:
-- Every headline: SHORT, PUNCHY, ACTION-ORIENTED. Max 6 words. Not "Overview of the situation" → "2.163 alberi. Un patrimonio vivo."
-- Every body paragraph: MAX 2 sentences. Dense with facts. No filler words.
-- Every bullet point: START with a bold number, name, or strong adjective. Not "The trees are important" → "<strong>31%</strong> Tigli — la specie dominante del territorio."
-- Stats: always include the unit AND the context ("36,6 m²/abitante — il doppio della media nazionale")
-- Charts must have REAL labels and REAL numbers extracted from the document
-- Never write vague text. Every sentence must contain at least one specific fact from the document.
+MANDATORY DATA USAGE:
+- key_stats → Use ALL in the STATS section (section 2). Every single one.
+- charts_data → Use each chart object to build a real Chart.js visualization. Use exact labels and values.
+- main_topics → Each topic's key_points must appear as content bullets in the relevant sections.
+- priority_or_risk_items → Use ALL in a PRIORITY ROWS section. Show count, percentage, label.
+- process_steps → Use in a PROCESS FLOW section.
+- rules_principles → Use in a RULE CARDS section.
+- benefits_outcomes → Use in a CARDS or feature list section.
+- investment_costs → Show in an INFO BOX with the exact amounts.
+- timeline_events → Use in a TIMELINE section if ≥3 events exist.
+- key_quotes → Use the best one in the HIGHLIGHT section.
+- contacts → Use in the CLOSING section.
 
----
+WRITING RULES (strictly follow):
+- Headlines: MAX 6 words. Punchy, specific, data-driven. Example: "2.163 Alberi. Un Patrimonio Vivo."
+- Body text: MAX 2 sentences per paragraph. Dense with facts. Use exact numbers.
+- Bullets: always start with <strong>bold number or name</strong> — then explanation.
+- NEVER write: "This section covers...", "Overview of...", "We will examine..."
+- EVERY bullet point must contain a specific fact from the document.
+- Stats must always show unit + context: "36,6 m²/ab — doppio della media EU"
 
-REQUIRED SECTION PLAN for ${config.slideCount} sections:
+SECTION PLAN:
 ${buildSectionPlan(config.slideCount)}
 
----
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-USE THIS EXACT HTML SHELL (do NOT change the <head> or the <script> block structure):
+USE THIS HTML SHELL:
 
 <!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>[DOCUMENT TITLE HERE]</title>
+<title>[DOCUMENT TITLE]</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/material-icons@1.13.12/iconfont/material-icons.min.css">
@@ -431,52 +618,82 @@ ${css}
 </head>
 <body>
 
-[YOUR SECTIONS HERE]
+[YOUR ${config.slideCount} SECTIONS HERE]
 
 <script>
-// AOS
 document.addEventListener('DOMContentLoaded', () => {
-  const obs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting) e.target.classList.add('aos-animate'); }), { threshold: 0.08 });
+  // AOS
+  const obs = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) e.target.classList.add('aos-animate');
+  }), { threshold: 0.08 });
   document.querySelectorAll('[data-aos]').forEach(el => obs.observe(el));
+
+  // Animate progress bars
+  const barObs = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) {
+      const fill = e.target.querySelector('.progress-fill');
+      if (fill) { const w = fill.dataset.width; setTimeout(() => fill.style.width = w, 100); }
+    }
+  }), { threshold: 0.3 });
+  document.querySelectorAll('.progress-item').forEach(el => barObs.observe(el));
 });
-// [CHART.JS INITS HERE — one per canvas id]
+
+// [CHART.JS INITIALIZATIONS HERE]
 </script>
 </body>
 </html>
 
----
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-SECTION CLASS RULES:
-- Every <section> must have class="section" PLUS one of: section-white / section-light / section-dark / section-highlight
-- Default for this style: "${defaultSection}"
-- Alternate sections: use "${altSection}" to create visual rhythm
-- section-highlight = gradient bg, use sparingly (1-2 max)
-- Always wrap content in <div class="section-inner">
+COMPONENT REFERENCE:
 
----
-
-AVAILABLE COMPONENTS (copy patterns exactly):
-
-### HERO (always first — use section-white or section-dark depending on style)
-<section class="section section-white">
+### HERO
+<section class="section ${defaultSection} hero">
   <div class="section-inner">
     <div class="hero-badge"><span class="material-icons" style="font-size:0.9em">location_city</span> ENTITY NAME</div>
-    <h1 class="section-title"><span class="gradient">Main Title of</span><br>The Document</h1>
-    <p class="section-body">Compelling subtitle or description from document content.</p>
-    <div class="tags"><span class="tag">Tag 1</span><span class="tag">Tag 2</span></div>
+    <h1 class="section-title"><span class="gradient">Main Title</span><br>Subtitle Here</h1>
+    <p class="section-body">Compelling 1-2 sentences with key facts from summary.</p>
+    <div class="tags"><span class="tag">Tag 1</span><span class="tag">Tag 2</span><span class="tag">Tag 3</span></div>
   </div>
 </section>
 
-### STATS (great for chapter 3-type number sections)
+### STATS (use ALL key_stats entries)
 <section class="section section-white">
   <div class="section-inner">
-    <div class="chapter-label">Key Numbers</div>
-    <h2 class="section-title">Title with <span class="accent">Real Data</span></h2>
-    <p class="section-body">Brief context paragraph.</p>
+    <div class="chapter-label">Numeri Chiave</div>
+    <h2 class="section-title">Il Patrimonio <span class="accent">in Cifre</span></h2>
+    <p class="section-body">Context sentence with 1-2 most important numbers.</p>
     <div class="stats-grid" data-aos="zoom-in">
-      <div class="stat-item"><span class="stat-number">2.163</span><div class="stat-label">Alberi censiti</div><div class="stat-desc">Tutto il territorio</div></div>
-      <div class="stat-item"><span class="stat-number">44</span><div class="stat-label">Generi botanici</div><div class="stat-desc">Biodiversità</div></div>
-      <!-- 3-4 stats with REAL numbers from document -->
+      <div class="stat-item">
+        <span class="stat-number">2.163</span>
+        <div class="stat-label">Alberi censiti</div>
+        <div class="stat-desc">Intero territorio comunale</div>
+      </div>
+      <!-- REPEAT FOR EVERY key_stats ENTRY -->
+    </div>
+  </div>
+</section>
+
+### CHART (real data from charts_data)
+<section class="section section-white">
+  <div class="section-inner">
+    <div class="chapter-label">Distribuzione Dati</div>
+    <h2 class="section-title">Chart Title <span class="accent">Here</span></h2>
+    <div class="two-col" style="align-items:center">
+      <div data-aos="fade-right">
+        <p class="section-body">Analytical sentence about what the data shows.</p>
+        <ul class="feature-list">
+          <li><strong>31,07%</strong> — Tilia spp., specie dominante</li>
+          <li><strong>20,11%</strong> — Acer spp., secondo genere</li>
+          <!-- 3-5 key insights from the chart data -->
+        </ul>
+      </div>
+      <div data-aos="fade-left">
+        <div class="chart-wrapper">
+          <div class="chart-subtitle">COMPOSIZIONE SPECIE</div>
+          <canvas id="chart1" height="280"></canvas>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -484,90 +701,80 @@ AVAILABLE COMPONENTS (copy patterns exactly):
 ### CARDS
 <section class="section section-dark">
   <div class="section-inner">
-    <div class="chapter-label">Category</div>
-    <h2 class="section-title">Cards Title</h2>
+    <div class="chapter-label">Category Label</div>
+    <h2 class="section-title">Cards <span class="accent">Section</span></h2>
     <div class="cards-grid">
       <div class="card" data-aos="fade-up" data-aos-delay="0">
-        <span class="card-icon"><span class="material-icons" style="color:var(--accent)">shield</span></span>
-        <div class="card-title">Card Title</div>
-        <div class="card-body">Description from document content.</div>
+        <span class="card-icon"><span class="material-icons" style="color:var(--accent)">eco</span></span>
+        <div class="card-title">Card Title with Data</div>
+        <div class="card-body"><strong>Specific number or fact</strong> — explanation from document.</div>
       </div>
-      <!-- 2-4 cards -->
+      <!-- 3-4 cards -->
     </div>
   </div>
 </section>
 
-### PROCESS FLOW (for step-by-step or 3-factor explanations)
+### PRIORITY ROWS (use ALL priority_or_risk_items)
+<section class="section section-white">
+  <div class="section-inner">
+    <div class="chapter-label">Priorità di Intervento</div>
+    <h2 class="section-title">Analisi del <span class="accent">Rischio</span></h2>
+    <p class="section-body">Context sentence about the risk/priority classification.</p>
+    <div class="priority-list">
+      <div class="priority-row" data-aos="fade-up" data-aos-delay="0">
+        <div class="priority-num">1</div>
+        <div class="priority-content">
+          <div class="priority-title">Urgenza Immediata</div>
+          <div class="priority-body"><strong>38 alberi (6,4%)</strong> — Intervento entro 24 ore per rischio caduta.</div>
+        </div>
+        <div class="priority-badge">6,4%</div>
+      </div>
+      <!-- Repeat for EVERY item with real count + percentage -->
+    </div>
+  </div>
+</section>
+
+### PROCESS FLOW
 <section class="section section-dark">
   <div class="section-inner">
-    <div class="chapter-label">Process</div>
-    <h2 class="section-title">How It Works</h2>
-    <p class="section-body">Introduction paragraph.</p>
+    <div class="chapter-label">Processo</div>
+    <h2 class="section-title">Come <span class="accent">Funziona</span></h2>
     <div class="process-flow" data-aos="fade-up">
       <div class="process-step">
         <div class="process-step-icon">🌳</div>
-        <div class="process-step-title">Step One</div>
-        <div class="process-step-body">Description.</div>
+        <div class="process-step-title">Step Title</div>
+        <div class="process-step-body">Specific description with data.</div>
       </div>
-      <div class="process-step">
-        <div class="process-step-icon">📊</div>
-        <div class="process-step-title">Step Two</div>
-        <div class="process-step-body">Description.</div>
-      </div>
-      <div class="process-step">
-        <div class="process-step-icon">✅</div>
-        <div class="process-step-title">Step Three</div>
-        <div class="process-step-body">Description.</div>
-      </div>
+      <!-- 3-5 steps from process_steps -->
     </div>
   </div>
 </section>
 
-### PRIORITY ROWS (numbered list with styled rows)
-<section class="section section-white">
-  <div class="section-inner">
-    <div class="chapter-label">Results</div>
-    <h2 class="section-title">Priority List</h2>
-    <p class="section-body">Intro text.</p>
-    <div class="priority-list">
-      <div class="priority-row" data-aos="fade-up">
-        <div class="priority-num">1</div>
-        <div class="priority-content">
-          <div class="priority-title">Item Title</div>
-          <div class="priority-body">38 alberi (6,4%) — description of priority level.</div>
-        </div>
-      </div>
-      <!-- repeat for each item -->
-    </div>
-  </div>
-</section>
-
-### INFO BOX + TWO COLUMN
+### TWO-COL + INFO BOXES
 <section class="section section-dark">
   <div class="section-inner">
     <div class="two-col">
       <div data-aos="fade-right">
         <div class="chapter-label">Topic</div>
         <h2 class="section-title">Title</h2>
-        <p class="section-body">Main text content.</p>
         <ul class="feature-list">
-          <li><strong>Point A</strong> — explanation</li>
-          <li><strong>Point B</strong> — explanation</li>
+          <li><strong>Fact 1</strong> — detail</li>
+          <li><strong>Fact 2</strong> — detail</li>
         </ul>
       </div>
       <div data-aos="fade-left">
-        <div class="info-box">
-          <div class="info-box-icon">❓</div>
-          <div>
-            <div class="info-box-title">Question Title</div>
-            <div class="info-box-body">Answer or explanation from document.</div>
-          </div>
-        </div>
         <div class="info-box">
           <div class="info-box-icon">💰</div>
           <div>
-            <div class="info-box-title">Investment</div>
-            <div class="info-box-body"><strong>€ 46.340</strong> — detail.</div>
+            <div class="info-box-title">Investimento</div>
+            <div class="info-box-body"><strong>€ 46.340</strong> — exact breakdown from investment_costs.</div>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-icon">📋</div>
+          <div>
+            <div class="info-box-title">Another Info</div>
+            <div class="info-box-body">Specific fact from document.</div>
           </div>
         </div>
       </div>
@@ -575,120 +782,122 @@ AVAILABLE COMPONENTS (copy patterns exactly):
   </div>
 </section>
 
-### CHART (use REAL data from document)
+### RULE CARDS (for principles/rules from rules_principles)
+<section class="section section-dark">
+  <div class="section-inner">
+    <div class="chapter-label">Principi</div>
+    <h2 class="section-title">Regola <span class="accent">10-20-30</span></h2>
+    <p class="section-body">Explanation of the rule or principle.</p>
+    <div class="rule-grid" data-aos="zoom-in">
+      <div class="rule-card">
+        <div class="rule-number">10%</div>
+        <div class="rule-label">Per singola specie</div>
+        <div class="rule-desc">Explanation of this rule threshold.</div>
+      </div>
+      <!-- one card per rule -->
+    </div>
+  </div>
+</section>
+
+### TIMELINE (if timeline_events has ≥3 items)
 <section class="section section-white">
   <div class="section-inner">
-    <div class="chapter-label">Data</div>
-    <h2 class="section-title">Chart Title</h2>
-    <div class="two-col" style="align-items:center">
-      <div data-aos="fade-right">
-        <p class="section-body">Explanation of the data.</p>
-        <ul class="feature-list">
-          <li>Key insight 1</li>
-          <li>Key insight 2</li>
-        </ul>
-      </div>
-      <div data-aos="fade-left">
-        <div class="chart-wrapper">
-          <div class="chart-subtitle">CHART LABEL</div>
-          <canvas id="chart1" height="300"></canvas>
-        </div>
+    <div class="chapter-label">Cronologia</div>
+    <h2 class="section-title">Il Percorso <span class="accent">nel Tempo</span></h2>
+    <div class="timeline">
+      <div class="timeline-item" data-aos="fade-up">
+        <div class="timeline-dot"></div>
+        <div class="timeline-date">2022</div>
+        <div class="timeline-title">Event Title</div>
+        <div class="timeline-body">Description from timeline_events.</div>
       </div>
     </div>
   </div>
 </section>
 
-### RULE CARDS (for 10-20-30 type rules or 3 key principles)
-<section class="section section-dark">
+### PROGRESS BARS (for percentage distributions)
+<section class="section section-white">
   <div class="section-inner">
-    <div class="chapter-label">Rules</div>
-    <h2 class="section-title">The Rule of <span class="accent">10-20-30</span></h2>
-    <p class="section-body">Explanation of the rule.</p>
-    <div class="rule-grid" data-aos="zoom-in">
-      <div class="rule-card"><div class="rule-number">Max 10%</div><div class="rule-label">Per singola specie</div></div>
-      <div class="rule-card"><div class="rule-number">Max 20%</div><div class="rule-label">Per singolo genere</div></div>
-      <div class="rule-card"><div class="rule-number">Max 30%</div><div class="rule-label">Per singola famiglia</div></div>
+    <div class="chapter-label">Distribuzione</div>
+    <h2 class="section-title">Title</h2>
+    <div data-aos="fade-up">
+      <div class="progress-item">
+        <div class="progress-header">
+          <span class="progress-label">Tilia spp.</span>
+          <span class="progress-value">31,07%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" data-width="31.07%" style="width:0%"></div></div>
+      </div>
+      <!-- repeat for each item -->
     </div>
   </div>
 </section>
 
-### HIGHLIGHT (use max 1-2 times)
+### HIGHLIGHT (use best quote from key_quotes)
 <section class="section section-highlight">
   <div class="section-inner" style="text-align:center">
-    <div class="chapter-label">Key Message</div>
-    <blockquote>Powerful quote or key statement from the document.</blockquote>
+    <div class="chapter-label">Il Messaggio Chiave</div>
+    <blockquote>Exact quote or key finding from key_quotes.</blockquote>
   </div>
 </section>
 
-### CLOSING (always last)
+### CLOSING
 <section class="section section-dark">
   <div class="section-inner">
-    <div class="chapter-label">Conclusion</div>
-    <h2 class="section-title">Closing Title</h2>
-    <p class="section-body">Summary paragraph.</p>
-    <div class="contact-grid">
-      <div class="contact-item"><div class="contact-type">Website</div><div class="contact-value">www.comune.it</div></div>
-      <!-- use real contacts if found in document -->
+    <div class="chapter-label">Conclusioni</div>
+    <h2 class="section-title">Il Futuro del <span class="accent">Verde Urbano</span></h2>
+    <p class="section-body">Summary using conclusions array — specific facts only.</p>
+    <div class="contact-grid" data-aos="fade-up">
+      <div class="contact-item"><div class="contact-type">Ente</div><div class="contact-value">[entity from contacts]</div></div>
+      <!-- use all contacts fields that exist -->
     </div>
   </div>
 </section>
 
----
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-CHART.JS INIT TEMPLATE (add in the <script> block for each chart):
+CHART.JS TEMPLATES:
+
+// Doughnut/Pie — use exact labels+values from charts_data
 new Chart(document.getElementById('chart1'), {
-  type: 'doughnut', // or 'bar', 'pie', 'line', 'horizontalBar'
+  type: 'doughnut',
   data: {
-    labels: ['Tilia 31%', 'Acer 20%', 'Carpinus 9%', 'Altri 40%'],
-    datasets: [{
-      data: [31.07, 20.11, 9.2, 39.62],
-      backgroundColor: ['${palette.primary}', '${palette.secondary}', '${palette.primary}99', '${palette.secondary}66', '${palette.primary}44'],
-      borderWidth: 0,
-      hoverOffset: 8,
-    }]
+    labels: ['Tilia 31%', 'Acer 20%', 'Carpinus 9%'],
+    datasets: [{ data: [31.07, 20.11, 9.2], backgroundColor: ['${palette.primary}', '${palette.secondary}', '${palette.primary}99', '${palette.secondary}66', '${palette.primary}44', '${palette.secondary}33'], borderWidth: 0, hoverOffset: 8 }]
   },
-  options: {
-    responsive: true, cutout: '55%',
-    plugins: {
-      legend: { position: 'right', labels: { color: '${isLight ? '#0f1e35' : palette.text}', font: { family: 'Inter', size: 12 }, padding: 16, boxWidth: 12, borderRadius: 4 } }
-    }
-  }
+  options: { responsive: true, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '${isLight ? '#0f1e35' : palette.text}', font: { family: 'Inter', size: 11 }, padding: 14, boxWidth: 10, borderRadius: 3 } } } }
 });
 
-For bar charts use:
+// Horizontal Bar
+new Chart(document.getElementById('chart2'), {
   type: 'bar',
-  data: { labels: [...], datasets: [{ data: [...], backgroundColor: '${palette.primary}cc', borderRadius: 8, borderSkipped: false }] },
+  data: { labels: ['Label A', 'Label B', 'Label C'], datasets: [{ data: [120, 80, 45], backgroundColor: '${palette.primary}cc', borderRadius: 6, borderSkipped: false }] },
   options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '${isLight ? '#5a6a7e' : 'rgba(255,255,255,0.6)'}' }, grid: { color: '${isLight ? '#e5e7eb' : 'rgba(255,255,255,0.08)'}' } }, y: { ticks: { color: '${isLight ? '#5a6a7e' : 'rgba(255,255,255,0.6)'}' }, grid: { display: false } } } }
+});
 
----
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-IMPORTANT RULES:
-- Use ONLY the CSS classes defined above — do NOT add custom inline styles except minor adjustments
-- Add data-aos="fade-up" (or fade-right/fade-left/zoom-in) to every major element
-- Add data-aos-delay="100"/"200"/"300" to stagger children within a section
-- Alternate section-white/section-light/section-dark for visual rhythm
-- Use REAL data, numbers, and quotes from the document — NO placeholder text
-- Use material-icons: <span class="material-icons">icon_name</span>
-- Sections must have class="section" + one background class
-
----
-
-DOCUMENT:
+ORIGINAL DOCUMENT (for additional context and exact quotes):
 Filename: ${filename}
 
 ${truncatedText}
 
----
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⚠️ BEFORE OUTPUTTING — SELF-CHECK:
-1. Count your <section class="section ..."> elements. Must be EXACTLY ${config.slideCount}.
-2. Every number/statistic is real data from the document above.
-3. At least ${minCharts} Chart.js visualization(s) are included.
-4. Every headline is ≤6 words and punchy.
-5. No section has generic filler text.
+⚠️ FINAL SELF-CHECK before outputting:
+1. Count <section class="section ..."> elements → must be EXACTLY ${config.slideCount}
+2. Every number in key_stats appears in the STATS section
+3. Every charts_data entry has a matching Chart.js init in the <script> block
+4. Every priority_or_risk_item appears in a PRIORITY ROWS section with real count+%
+5. ZERO filler sentences — every line has a specific fact
+6. At least ${minCharts} charts included
 
-OUTPUT: Return ONLY the raw HTML. No markdown, no backticks. Start with <!DOCTYPE html>.`;
+OUTPUT: Return ONLY raw HTML. No markdown, no backticks. Start with <!DOCTYPE html>.`;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN EXPORT
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function generatePresentation(
   text: string,
@@ -696,15 +905,41 @@ export async function generatePresentation(
   config: GenerationConfig,
   onProgress?: (status: string) => void
 ): Promise<string> {
-  onProgress?.('Preparazione del prompt...');
-  const prompt = buildPrompt(text, filename, config);
   const model = getGeminiModel(config.model || 'gemini-2.0-flash');
-  onProgress?.(`Generazione con ${config.model || 'Gemini'}...`);
-  const result = await model.generateContent(prompt);
+  const truncatedText = text.length > 40000 ? text.slice(0, 40000) + '\n[...]' : text;
+
+  // ── Phase 1: Extract structured data ──────────────────────────────────────
+  onProgress?.('Analisi del documento in corso...');
+  const extractionPrompt = buildExtractionPrompt(truncatedText);
+  let extractedData = '';
+  try {
+    const extractResult = await model.generateContent(extractionPrompt);
+    extractedData = extractResult.response.text().trim();
+    // Strip markdown code blocks if present
+    extractedData = extractedData
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+  } catch (err) {
+    // If extraction fails, continue with empty extracted data
+    onProgress?.('Estrazione dati parziale, continuo...');
+    extractedData = '{}';
+  }
+
+  // ── Phase 2: Generate HTML ─────────────────────────────────────────────────
+  onProgress?.(`Generazione presentazione con ${config.model || 'Gemini'}...`);
+  const htmlPrompt = buildHtmlPrompt(text, filename, config, extractedData);
+  const result = await model.generateContent(htmlPrompt);
   const response = result.response.text();
+
   onProgress?.('Elaborazione risposta...');
   const cleaned = response
-    .replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+    .replace(/^```html\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
   if (!cleaned.toLowerCase().includes('<!doctype html')) {
     throw new Error('La risposta AI non contiene HTML valido. Riprova.');
   }

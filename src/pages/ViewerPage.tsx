@@ -110,7 +110,7 @@ export function ViewerPage() {
   );
 
   return (
-    <div className={fullscreen ? 'fixed inset-0 z-50 bg-black flex flex-col' : 'flex h-full flex-col gap-3'}>
+    <div className={fullscreen ? 'fixed inset-0 z-50 bg-black flex flex-col' : 'flex h-screen flex-col gap-3 p-3 bg-background'}>
 
       {/* Toolbar */}
       {!fullscreen && (
@@ -207,7 +207,6 @@ export function ViewerPage() {
         <iframe
           srcDoc={content.htmlContent}
           className="h-full w-full"
-          style={{ minHeight: fullscreen ? '100vh' : '70vh' }}
           sandbox="allow-scripts allow-same-origin"
           title="Presentation Viewer"
         />
