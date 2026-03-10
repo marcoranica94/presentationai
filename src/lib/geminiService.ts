@@ -71,9 +71,8 @@ body { font-family: var(--body-font); background: var(--bg-base); color: var(--t
 
 /* ── SECTION TYPES ─────────────────────────────────── */
 .section {
-  min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
-  padding: 96px 8%;
+  padding: 80px 8%;
   position: relative; overflow: hidden;
 }
 .section-white { background: var(--bg-base); color: var(--text-base); }
@@ -350,6 +349,27 @@ blockquote::before { content:'"'; font-size:4.5em; color:rgba(255,255,255,0.2); 
 `;
 }
 
+function buildSectionPlan(count: number): string {
+  const plans: Record<number, string[]> = {
+    6:  ['1. HERO', '2. STATS (3-4 big numbers)', '3. CONTENT + feature list', '4. CHART (real data)', '5. CARDS or PRIORITY LIST', '6. CLOSING'],
+    8:  ['1. HERO', '2. STATS (4 numbers)', '3. CONTENT + feature list', '4. CHART 1 (pie or doughnut)', '5. CARDS (3 cards)', '6. CHART 2 (bar chart)', '7. HIGHLIGHT quote', '8. CLOSING'],
+    10: ['1. HERO', '2. STATS (4 numbers)', '3. CONTENT + feature list', '4. CHART 1', '5. CARDS (3)', '6. PRIORITY ROWS', '7. CHART 2', '8. TWO-COL + info boxes', '9. HIGHLIGHT quote', '10. CLOSING'],
+    12: ['1. HERO', '2. STATS', '3. CONTENT A', '4. CHART 1', '5. CARDS', '6. CONTENT B + feature list', '7. CHART 2', '8. PRIORITY ROWS', '9. TWO-COL + info boxes', '10. RULE CARDS or TIMELINE', '11. HIGHLIGHT quote', '12. CLOSING'],
+    15: ['1. HERO', '2. STATS', '3. CONTENT A', '4. CHART 1 (pie)', '5. CARDS (3)', '6. CONTENT B', '7. CHART 2 (bar)', '8. PRIORITY ROWS', '9. TWO-COL', '10. PROCESS FLOW', '11. TIMELINE or RULE CARDS', '12. CHART 3 (line or doughnut)', '13. INFO BOXES', '14. HIGHLIGHT quote', '15. CLOSING'],
+  };
+  const base = plans[count] ?? plans[10];
+  if (base) return base.join('\n');
+  // Fallback: generate plan dynamically
+  const dynamic = ['1. HERO', '2. STATS'];
+  for (let i = 3; i <= count - 2; i++) {
+    const types = ['CONTENT + feature list', 'CHART (real data)', 'CARDS (3)', 'PRIORITY ROWS', 'TWO-COL + info boxes', 'PROCESS FLOW'];
+    dynamic.push(`${i}. ${types[(i - 3) % types.length]}`);
+  }
+  dynamic.push(`${count - 1}. HIGHLIGHT quote`);
+  dynamic.push(`${count}. CLOSING`);
+  return dynamic.join('\n');
+}
+
 function buildPrompt(text: string, filename: string, config: GenerationConfig): string {
   const palette = PALETTES[config.palette] ?? PALETTES['indigo'];
   const useCaseInstructions = USE_CASE_INSTRUCTIONS[config.useCase];
@@ -363,13 +383,33 @@ function buildPrompt(text: string, filename: string, config: GenerationConfig): 
   const defaultSection = isLight ? 'section-white' : 'section-dark';
   const altSection = isLight ? 'section-light' : 'section-dark';
 
-  return `You are an expert web designer creating a document that looks like a premium Gamma.app presentation.
+  // Build required section plan based on count
+  const minCharts = config.slideCount >= 8 ? 3 : config.slideCount >= 6 ? 2 : 1;
+
+  return `You are a world-class information designer and data journalist. Create a stunning, data-rich scrollable HTML document — think premium annual report meets Gamma.app.
+
+⚠️ CRITICAL — SECTION COUNT: You MUST generate EXACTLY ${config.slideCount} <section> elements. Not ${config.slideCount - 1}, not ${config.slideCount + 1}. EXACTLY ${config.slideCount}. Count them before you finish. This is non-negotiable.
+
+⚠️ CRITICAL — CHARTS: You MUST include at least ${minCharts} chart section(s) with real Chart.js visualizations using actual data from the document.
 
 LANGUAGE: ${lang}
 USE CASE: ${config.useCase.toUpperCase()}
 ${useCaseInstructions}
 
-TARGET: approximately ${config.slideCount} sections.
+---
+
+WRITING QUALITY RULES — follow these strictly:
+- Every headline: SHORT, PUNCHY, ACTION-ORIENTED. Max 6 words. Not "Overview of the situation" → "2.163 alberi. Un patrimonio vivo."
+- Every body paragraph: MAX 2 sentences. Dense with facts. No filler words.
+- Every bullet point: START with a bold number, name, or strong adjective. Not "The trees are important" → "<strong>31%</strong> Tigli — la specie dominante del territorio."
+- Stats: always include the unit AND the context ("36,6 m²/abitante — il doppio della media nazionale")
+- Charts must have REAL labels and REAL numbers extracted from the document
+- Never write vague text. Every sentence must contain at least one specific fact from the document.
+
+---
+
+REQUIRED SECTION PLAN for ${config.slideCount} sections:
+${buildSectionPlan(config.slideCount)}
 
 ---
 
@@ -640,7 +680,14 @@ ${truncatedText}
 
 ---
 
-OUTPUT: Return ONLY the complete HTML. No markdown, no backticks. Start with <!DOCTYPE html>.`;
+⚠️ BEFORE OUTPUTTING — SELF-CHECK:
+1. Count your <section class="section ..."> elements. Must be EXACTLY ${config.slideCount}.
+2. Every number/statistic is real data from the document above.
+3. At least ${minCharts} Chart.js visualization(s) are included.
+4. Every headline is ≤6 words and punchy.
+5. No section has generic filler text.
+
+OUTPUT: Return ONLY the raw HTML. No markdown, no backticks. Start with <!DOCTYPE html>.`;
 }
 
 export async function generatePresentation(
