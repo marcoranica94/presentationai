@@ -3,512 +3,351 @@ import type { GenerationConfig, PresentationUseCase } from '@/types';
 import { PALETTES } from '@/types';
 
 const USE_CASE_INSTRUCTIONS: Record<PresentationUseCase, string> = {
-  general: `Standard informative document. Be clear, structured, and balanced.`,
+  general: `Standard informative document. Clear, structured, balanced.`,
   political: `
 POLITICAL COMMUNICATION:
 - Hero: powerful headline + emotionally resonant subtitle
-- Use persuasive, direct language — speak to values and identity
-- Include a dedicated CALL TO ACTION section
-- Highlight achievements with numbers, before/after contrasts, future vision
-- Structure: problem → solution → call to action → closing statement
+- Persuasive, direct language — values and identity
+- At least one CALL TO ACTION section with clear ask
+- Achievements with numbers, before/after contrasts, future vision
+- Structure: problem → solution → call to action → closing
 - Tone: passionate, confident, inspiring`,
   municipal: `
-MUNICIPAL/INSTITUTIONAL COMMUNICATION for citizens:
-- Hero: institutional header with municipality/entity name and topic
-- Plain, accessible language — no jargon, be inclusive
-- Structure: context → what was done → how citizens are affected → contacts/next steps
-- Include practical info: dates, numbers, offices, procedures
+MUNICIPAL/INSTITUTIONAL:
+- Hero: institution name + topic clearly stated
+- Plain accessible language, no jargon
+- Structure: context → what was done → impact on citizens → contacts/next steps
+- Practical info: dates, numbers, offices, procedures
 - Tone: formal but approachable, service-oriented
-- Last section: contacts, resources, where to find more info`,
+- Last section: contacts, resources, how to find more info`,
 };
 
-function buildDesignSystem(palette: { primary: string; secondary: string; bg: string; text: string }, style: string): string {
-  const schemes: Record<string, string> = {
-    modern: `
-      --bg-page: ${palette.bg};
-      --bg-section-alt: color-mix(in srgb, ${palette.bg} 85%, ${palette.primary} 15%);
-      --bg-card: rgba(255,255,255,0.05);
-      --card-border: rgba(255,255,255,0.1);
-      --text-primary: ${palette.text};
-      --text-secondary: rgba(255,255,255,0.6);
-      --accent: ${palette.primary};
-      --accent2: ${palette.secondary};
-      --hero-gradient: linear-gradient(135deg, ${palette.bg} 0%, color-mix(in srgb, ${palette.bg} 70%, ${palette.primary}) 100%);`,
-    minimal: `
-      --bg-page: #ffffff;
-      --bg-section-alt: #f7f8fc;
-      --bg-card: #ffffff;
-      --card-border: #e5e7eb;
-      --text-primary: #0f172a;
-      --text-secondary: #64748b;
-      --accent: ${palette.primary};
-      --accent2: ${palette.secondary};
-      --hero-gradient: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);`,
-    professional: `
-      --bg-page: #0d1b2e;
-      --bg-section-alt: #f0f4f8;
-      --bg-card: rgba(255,255,255,0.07);
-      --card-border: rgba(255,255,255,0.12);
-      --text-primary: #e8edf2;
-      --text-secondary: rgba(232,237,242,0.6);
-      --accent: ${palette.primary};
-      --accent2: ${palette.secondary};
-      --hero-gradient: linear-gradient(135deg, #0d1b2e 0%, #162840 100%);`,
-    creative: `
-      --bg-page: ${palette.bg};
-      --bg-section-alt: color-mix(in srgb, ${palette.bg} 90%, ${palette.secondary} 10%);
-      --bg-card: rgba(255,255,255,0.07);
-      --card-border: rgba(255,255,255,0.15);
-      --text-primary: ${palette.text};
-      --text-secondary: rgba(255,255,255,0.55);
-      --accent: ${palette.primary};
-      --accent2: ${palette.secondary};
-      --hero-gradient: linear-gradient(135deg, ${palette.bg} 0%, color-mix(in srgb, ${palette.bg} 60%, ${palette.primary}) 100%);`,
-  };
+function buildDesignSystem(
+  palette: { primary: string; secondary: string; bg: string; text: string },
+  style: string
+): string {
+  // For light styles, use white/light grey backgrounds with accent cards
+  // For dark styles, use dark backgrounds
+  const isLight = style === 'minimal' || style === 'professional';
 
-  const lightTextOverride = style === 'minimal' ? `
-    .section-alt .section-label { color: var(--accent); }
-    .section-alt .section-title { color: #0f172a; }
-    .section-alt .section-body { color: #475569; }
-    .section-alt .card { background: #ffffff; border-color: #e5e7eb; }
-    .section-alt .stat-number { color: var(--accent); }
-    .section-alt .timeline-dot { background: var(--accent); }
-    .section-alt .tag { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
-  ` : style === 'professional' ? `
-    .section-alt { background: #f0f4f8 !important; }
-    .section-alt .section-label { color: var(--accent); }
-    .section-alt .section-title { color: #0f172a !important; }
-    .section-alt .section-body { color: #334155 !important; }
-    .section-alt .card { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .section-alt .card .card-title { color: #0f172a; }
-    .section-alt .card .card-body { color: #475569; }
-    .section-alt .stat-number { color: var(--accent); }
-    .section-alt li { color: #334155; }
-    .section-alt li::before { color: var(--accent); }
-  ` : '';
+  const vars = isLight ? `
+  --bg-base: #ffffff;
+  --bg-alt: #f5f7fa;
+  --bg-dark: #0f1e35;
+  --text-base: #0f1e35;
+  --text-muted: #5a6a7e;
+  --text-on-dark: #f0f4f9;
+  --text-muted-on-dark: rgba(240,244,249,0.65);
+  --card-bg: color-mix(in srgb, ${palette.primary} 10%, #ffffff);
+  --card-border: color-mix(in srgb, ${palette.primary} 25%, transparent);
+  --card-bg-dark: rgba(255,255,255,0.07);
+  --card-border-dark: rgba(255,255,255,0.12);
+  --accent: ${palette.primary};
+  --accent2: ${palette.secondary};
+  --heading-font: 'Plus Jakarta Sans', sans-serif;
+  --body-font: 'Inter', sans-serif;` : `
+  --bg-base: ${palette.bg};
+  --bg-alt: color-mix(in srgb, ${palette.bg} 85%, ${palette.primary} 15%);
+  --bg-dark: ${palette.bg};
+  --text-base: ${palette.text};
+  --text-muted: rgba(255,255,255,0.6);
+  --text-on-dark: ${palette.text};
+  --text-muted-on-dark: rgba(255,255,255,0.6);
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.14);
+  --card-bg-dark: rgba(255,255,255,0.07);
+  --card-border-dark: rgba(255,255,255,0.14);
+  --accent: ${palette.primary};
+  --accent2: ${palette.secondary};
+  --heading-font: 'Plus Jakarta Sans', sans-serif;
+  --body-font: 'Inter', sans-serif;`;
 
   return `
-:root {
-  ${schemes[style] ?? schemes['modern']}
-  --radius: 16px;
-  --radius-sm: 10px;
-  --shadow: 0 8px 32px rgba(0,0,0,0.18);
-  --shadow-card: 0 4px 20px rgba(0,0,0,0.12);
-  --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-}
+:root { ${vars} }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 html { scroll-behavior: smooth; font-size: 16px; }
+body { font-family: var(--body-font); background: var(--bg-base); color: var(--text-base); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 
-body {
-  font-family: var(--font-body);
-  background: var(--bg-page);
-  color: var(--text-primary);
-  overflow-x: hidden;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* ─── SECTIONS ─────────────────────────────────────────── */
+/* ── SECTION TYPES ─────────────────────────────────── */
 .section {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 100px 8% 80px;
-  position: relative;
-  overflow: hidden;
-  background: var(--bg-page);
+  display: flex; align-items: center; justify-content: center;
+  padding: 96px 8%;
+  position: relative; overflow: hidden;
 }
-.section-alt { background: var(--bg-section-alt); }
-.section-inner { width: 100%; max-width: 1000px; z-index: 1; }
+.section-white { background: var(--bg-base); color: var(--text-base); }
+.section-light { background: var(--bg-alt); color: var(--text-base); }
+.section-dark  { background: var(--bg-dark); color: var(--text-on-dark); }
 
-/* ─── DECORATIVE BG BLOBS ───────────────────────────────── */
+.section-white .text-muted, .section-light .text-muted { color: var(--text-muted); }
+.section-dark  .text-muted { color: var(--text-muted-on-dark); }
+
+.section-inner { width: 100%; max-width: 980px; z-index: 1; }
+
+/* subtle bg blob */
 .section::before {
-  content: '';
-  position: absolute;
-  width: 500px; height: 500px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%);
-  top: -150px; right: -150px;
-  pointer-events: none; z-index: 0;
-}
-.section::after {
-  content: '';
-  position: absolute;
-  width: 300px; height: 300px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent2) 12%, transparent), transparent 70%);
-  bottom: -80px; left: -80px;
-  pointer-events: none; z-index: 0;
+  content:''; position:absolute; width:600px; height:600px; border-radius:50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 12%, transparent), transparent 65%);
+  top:-200px; right:-200px; pointer-events:none; z-index:0;
 }
 
-/* ─── TYPOGRAPHY ────────────────────────────────────────── */
-.section-label {
-  font-size: 0.72em;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 12px;
-  display: flex; align-items: center; gap: 8px;
+/* ── CHAPTER LABEL ─────────────────────────────────── */
+.chapter-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.72em; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 14px;
 }
-.section-label::before {
-  content: '';
-  display: inline-block;
-  width: 24px; height: 3px;
-  background: var(--accent);
-  border-radius: 2px;
-}
+.chapter-label::before { content:''; display:inline-block; width:20px; height:3px; background:var(--accent); border-radius:2px; }
+
+/* ── HEADINGS ──────────────────────────────────────── */
 .section-title {
-  font-family: var(--font-display);
-  font-size: clamp(2em, 5vw, 3.2em);
-  font-weight: 800;
-  line-height: 1.1;
-  color: var(--text-primary);
-  margin-bottom: 20px;
-  letter-spacing: -0.02em;
+  font-family: var(--heading-font);
+  font-size: clamp(1.9em, 4.5vw, 3em);
+  font-weight: 800; line-height: 1.1; letter-spacing: -0.02em;
+  margin-bottom: 18px;
 }
+.section-white .section-title, .section-light .section-title { color: #0f1e35; }
+.section-dark  .section-title { color: #ffffff; }
 .section-title .accent { color: var(--accent); }
 .section-title .gradient {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.section-body {
-  font-size: 1.05em;
-  color: var(--text-secondary);
-  max-width: 680px;
-  line-height: 1.75;
-  margin-bottom: 32px;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
 }
 
-/* ─── HERO ──────────────────────────────────────────────── */
-.hero {
-  background: var(--hero-gradient);
-  text-align: center;
-  align-items: center;
+.section-body {
+  font-size: 1em; line-height: 1.75; max-width: 700px; margin-bottom: 32px;
 }
-.hero .section-inner { text-align: center; }
-.hero .section-title { font-size: clamp(2.4em, 7vw, 4.5em); margin-bottom: 24px; }
-.hero .section-body { margin: 0 auto 36px; font-size: 1.15em; }
+.section-white .section-body, .section-light .section-body { color: var(--text-muted); }
+.section-dark  .section-body { color: var(--text-muted-on-dark); }
+
+/* ── HERO ──────────────────────────────────────────── */
+.hero { background: var(--bg-base); }
+.hero-inner { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: center; }
 .hero-badge {
   display: inline-flex; align-items: center; gap: 8px;
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  color: var(--accent);
-  padding: 6px 16px; border-radius: 100px;
-  font-size: 0.82em; font-weight: 600;
-  margin-bottom: 28px;
-  letter-spacing: 0.04em;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent); padding: 5px 14px; border-radius: 100px;
+  font-size: 0.78em; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 20px;
 }
-
-/* ─── CARDS GRID ────────────────────────────────────────── */
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
-  margin-top: 40px;
-}
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  padding: 28px;
-  transition: var(--transition);
-  backdrop-filter: blur(12px);
-  position: relative;
-  overflow: hidden;
-}
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow);
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-}
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  border-radius: var(--radius) var(--radius) 0 0;
-}
-.card-icon {
-  font-size: 2em;
-  margin-bottom: 14px;
-  display: block;
-}
-.card-title {
-  font-family: var(--font-display);
-  font-size: 1.1em;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 10px;
-}
-.card-body {
-  font-size: 0.88em;
-  color: var(--text-secondary);
-  line-height: 1.65;
-}
-
-/* ─── STATS ─────────────────────────────────────────────── */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 24px;
-  margin-top: 40px;
-}
-.stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  padding: 32px 24px;
-  text-align: center;
-  backdrop-filter: blur(12px);
-  transition: var(--transition);
-}
-.stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
-.stat-number {
-  font-family: var(--font-display);
-  font-size: clamp(2.4em, 5vw, 3.8em);
-  font-weight: 900;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1;
-  display: block;
-  margin-bottom: 8px;
-}
-.stat-label {
-  font-size: 0.82em;
-  color: var(--text-secondary);
-  font-weight: 500;
-  line-height: 1.4;
-}
-.stat-unit {
-  font-size: 0.5em;
-  font-weight: 600;
-  color: var(--accent2);
-  vertical-align: super;
-}
-
-/* ─── LIST ──────────────────────────────────────────────── */
-.feature-list { list-style: none; padding: 0; margin-top: 24px; }
-.feature-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--card-border) 60%, transparent);
-  font-size: 0.95em;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-.feature-list li:last-child { border-bottom: none; }
-.feature-list li::before {
-  content: '';
-  flex-shrink: 0;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  display: flex; align-items: center; justify-content: center;
-  margin-top: 2px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='12' height='12'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 12px;
-}
-
-/* ─── TWO COLUMN ────────────────────────────────────────── */
-.two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  align-items: center;
-}
-@media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
-
-/* ─── CHART ─────────────────────────────────────────────── */
-.chart-wrapper {
-  background: var(--bg-card);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  padding: 32px;
-  backdrop-filter: blur(12px);
-  margin-top: 32px;
-}
-.chart-title {
-  font-family: var(--font-display);
-  font-size: 1em;
-  font-weight: 700;
-  color: var(--text-secondary);
-  margin-bottom: 20px;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-/* ─── HIGHLIGHT ─────────────────────────────────────────── */
-.highlight-section {
-  background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
-}
-.highlight-section::before, .highlight-section::after { display: none; }
-.highlight-section .section-title { color: #fff; font-size: clamp(1.8em, 4vw, 2.8em); }
-.highlight-section .section-body { color: rgba(255,255,255,0.85); max-width: 700px; margin: 0 auto 32px; }
-.highlight-section .section-label { color: rgba(255,255,255,0.7); }
-.highlight-section .section-label::before { background: rgba(255,255,255,0.5); }
-blockquote {
-  font-family: var(--font-display);
-  font-size: clamp(1.5em, 3.5vw, 2.4em);
-  font-weight: 700;
-  line-height: 1.3;
-  color: #fff;
-  text-align: center;
-  max-width: 800px;
-  margin: 0 auto;
-  position: relative;
-  padding: 20px 40px;
-}
-blockquote::before {
-  content: '"';
-  font-size: 5em;
-  color: rgba(255,255,255,0.2);
-  position: absolute;
-  top: -20px; left: 0;
-  line-height: 1;
-  font-family: Georgia, serif;
-}
-
-/* ─── TIMELINE ──────────────────────────────────────────── */
-.timeline { position: relative; padding-left: 32px; margin-top: 32px; }
-.timeline::before {
-  content: '';
-  position: absolute;
-  left: 8px; top: 0; bottom: 0;
-  width: 2px;
-  background: linear-gradient(to bottom, var(--accent), var(--accent2));
-}
-.timeline-item { position: relative; margin-bottom: 36px; }
-.timeline-dot {
-  position: absolute;
-  left: -28px; top: 4px;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 3px solid var(--bg-page);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
-}
-.timeline-date {
-  font-size: 0.78em;
-  font-weight: 700;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 6px;
-}
-.timeline-title {
-  font-family: var(--font-display);
-  font-size: 1.05em;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-}
-.timeline-body { font-size: 0.88em; color: var(--text-secondary); line-height: 1.6; }
-
-/* ─── TAG ───────────────────────────────────────────────── */
+.hero .section-title { font-size: clamp(2.4em, 6vw, 4em); }
+.tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
 .tag {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 100px;
-  font-size: 0.75em;
-  font-weight: 600;
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent);
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  margin: 0 4px 8px 0;
+  padding: 4px 14px; border-radius: 100px;
+  font-size: 0.75em; font-weight: 600;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
-/* ─── PROGRESS BAR ──────────────────────────────────────── */
-.progress-item { margin-bottom: 20px; }
-.progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
-.progress-label { font-size: 0.88em; font-weight: 600; color: var(--text-primary); }
-.progress-value { font-size: 0.88em; font-weight: 700; color: var(--accent); }
-.progress-bar {
-  height: 8px;
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  border-radius: 100px;
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  border-radius: 100px;
-  transition: width 1.5s cubic-bezier(0.4,0,0.2,1);
-}
-
-/* ─── CTA ───────────────────────────────────────────────── */
-.cta-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 36px;
+/* ── STATS ─────────────────────────────────────────── */
+.stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:0; margin-top:36px; border:1px solid var(--card-border); border-radius:16px; overflow:hidden; }
+.section-dark .stats-grid { border-color: var(--card-border-dark); }
+.stat-item { padding:32px 24px; text-align:center; border-right:1px solid var(--card-border); }
+.section-dark .stat-item { border-color: var(--card-border-dark); }
+.stat-item:last-child { border-right:none; }
+.stat-number {
+  font-family: var(--heading-font); font-size: clamp(2.6em,5vw,3.8em); font-weight:900; line-height:1;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #fff;
-  border-radius: 100px;
-  font-size: 1em;
-  font-weight: 700;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: var(--transition);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent);
-  margin-top: 8px;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  display:block; margin-bottom:8px;
 }
-.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 50%, transparent); }
-.contact-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-top: 32px;
+.stat-label { font-size:0.82em; font-weight:600; }
+.section-white .stat-label, .section-light .stat-label { color:#0f1e35; }
+.section-dark  .stat-label { color:var(--text-on-dark); }
+.stat-desc { font-size:0.75em; margin-top:4px; }
+.section-white .stat-desc, .section-light .stat-desc { color:var(--text-muted); }
+.section-dark  .stat-desc  { color:var(--text-muted-on-dark); }
+
+/* ── CARDS ─────────────────────────────────────────── */
+.cards-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:32px; }
+.card {
+  border-radius:14px; padding:26px; transition:transform 0.25s ease, box-shadow 0.25s ease;
+  position:relative; overflow:hidden;
 }
-.contact-item {
-  background: var(--bg-card);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-sm);
-  padding: 20px;
-  backdrop-filter: blur(12px);
+.card:hover { transform:translateY(-3px); }
+.card::before { content:''; position:absolute; top:0;left:0;right:0; height:3px; background:linear-gradient(90deg,var(--accent),var(--accent2)); }
+.section-white .card, .section-light .card {
+  background: var(--card-bg); border:1px solid var(--card-border);
+  box-shadow:0 2px 12px rgba(0,0,0,0.06);
 }
-.contact-item .label { font-size: 0.75em; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
-.contact-item .value { font-size: 0.92em; color: var(--text-primary); font-weight: 500; }
+.section-dark .card {
+  background: var(--card-bg-dark); border:1px solid var(--card-border-dark);
+}
+.card-icon { font-size:2em; margin-bottom:12px; display:block; }
+.card-title { font-family:var(--heading-font); font-size:1em; font-weight:700; margin-bottom:8px; }
+.section-white .card-title, .section-light .card-title { color:#0f1e35; }
+.section-dark  .card-title { color:#ffffff; }
+.card-body { font-size:0.86em; line-height:1.65; }
+.section-white .card-body, .section-light .card-body { color:var(--text-muted); }
+.section-dark  .card-body  { color:var(--text-muted-on-dark); }
 
-/* ─── AOS ANIMATIONS ────────────────────────────────────── */
-[data-aos] { opacity: 0; transition: opacity 0.7s ease, transform 0.7s ease; }
-[data-aos].aos-animate { opacity: 1; }
-[data-aos="fade-up"] { transform: translateY(30px); }
-[data-aos="fade-up"].aos-animate { transform: translateY(0); }
-[data-aos="fade-right"] { transform: translateX(-30px); }
-[data-aos="fade-right"].aos-animate { transform: translateX(0); }
-[data-aos="fade-left"] { transform: translateX(30px); }
-[data-aos="fade-left"].aos-animate { transform: translateX(0); }
-[data-aos="zoom-in"] { transform: scale(0.92); }
-[data-aos="zoom-in"].aos-animate { transform: scale(1); }
+/* ── PROCESS FLOW (arrows) ─────────────────────────── */
+.process-flow { display:flex; flex-wrap:wrap; gap:0; margin-top:32px; }
+.process-step {
+  flex:1; min-width:180px; padding:22px 28px 22px 36px;
+  position:relative; text-align:center;
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%);
+}
+.process-step:first-child { clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%); }
+.process-step:last-child  { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 18px 50%); }
+.section-white .process-step, .section-light .process-step {
+  background: var(--card-bg); border:1px solid var(--card-border);
+}
+.section-dark .process-step { background: var(--card-bg-dark); border:1px solid var(--card-border-dark); }
+.process-step-icon { font-size:1.8em; margin-bottom:10px; }
+.process-step-title { font-family:var(--heading-font); font-size:0.95em; font-weight:700; margin-bottom:6px; color:var(--accent); }
+.process-step-body  { font-size:0.8em; line-height:1.5; }
+.section-white .process-step-body, .section-light .process-step-body { color:var(--text-muted); }
+.section-dark  .process-step-body  { color:var(--text-muted-on-dark); }
 
-/* ─── RESPONSIVE ────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .section { padding: 80px 6% 60px; }
-  .cards-grid { grid-template-columns: 1fr; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+/* ── PRIORITY ROWS (numbered list) ────────────────── */
+.priority-list { margin-top:28px; display:flex; flex-direction:column; gap:10px; }
+.priority-row {
+  display:flex; align-items:flex-start; gap:16px; padding:16px 20px; border-radius:12px;
+  border:1px solid var(--card-border);
+}
+.section-white .priority-row, .section-light .priority-row { background:var(--card-bg); }
+.section-dark  .priority-row { background:var(--card-bg-dark); border-color:var(--card-border-dark); }
+.priority-num {
+  flex-shrink:0; width:32px; height:32px; border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff; font-family:var(--heading-font); font-size:0.9em; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+}
+.priority-content { flex:1; }
+.priority-title { font-family:var(--heading-font); font-size:0.95em; font-weight:700; margin-bottom:4px; }
+.section-white .priority-title, .section-light .priority-title { color:#0f1e35; }
+.section-dark  .priority-title { color:#ffffff; }
+.priority-body { font-size:0.84em; line-height:1.55; }
+.section-white .priority-body, .section-light .priority-body { color:var(--text-muted); }
+.section-dark  .priority-body  { color:var(--text-muted-on-dark); }
+
+/* ── INFO BOX ──────────────────────────────────────── */
+.info-box {
+  border-radius:12px; padding:20px 24px; margin:20px 0;
+  border:1px solid var(--card-border); display:flex; gap:14px; align-items:flex-start;
+}
+.section-white .info-box, .section-light .info-box { background:var(--card-bg); }
+.section-dark  .info-box { background:var(--card-bg-dark); border-color:var(--card-border-dark); }
+.info-box-icon { font-size:1.4em; flex-shrink:0; margin-top:2px; }
+.info-box-title { font-family:var(--heading-font); font-size:0.95em; font-weight:700; margin-bottom:6px; color:var(--accent); }
+.info-box-body  { font-size:0.86em; line-height:1.6; }
+.section-white .info-box-body, .section-light .info-box-body { color:var(--text-muted); }
+.section-dark  .info-box-body  { color:var(--text-muted-on-dark); }
+
+/* ── TWO COLUMN ────────────────────────────────────── */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:start; }
+@media (max-width:768px) { .two-col { grid-template-columns:1fr; } }
+
+/* ── FEATURE LIST ──────────────────────────────────── */
+.feature-list { list-style:none; padding:0; margin-top:20px; }
+.feature-list li {
+  display:flex; align-items:flex-start; gap:12px; padding:12px 0;
+  border-bottom:1px solid color-mix(in srgb, var(--card-border) 60%, transparent);
+  font-size:0.92em; line-height:1.65;
+}
+.feature-list li:last-child { border-bottom:none; }
+.section-white .feature-list li, .section-light .feature-list li { color:var(--text-muted); }
+.section-dark  .feature-list li { color:var(--text-muted-on-dark); }
+.feature-list li::before {
+  content:''; flex-shrink:0; width:20px; height:20px; border-radius:50%; margin-top:2px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E") center/12px no-repeat;
+}
+.feature-list li strong { font-weight:600; }
+.section-white .feature-list li strong, .section-light .feature-list li strong { color:#0f1e35; }
+.section-dark  .feature-list li strong { color:#ffffff; }
+
+/* ── CHART WRAPPER ─────────────────────────────────── */
+.chart-wrapper { border-radius:14px; padding:28px; margin-top:28px; }
+.section-white .chart-wrapper, .section-light .chart-wrapper { background:var(--card-bg); border:1px solid var(--card-border); }
+.section-dark  .chart-wrapper { background:var(--card-bg-dark); border:1px solid var(--card-border-dark); }
+.chart-subtitle { font-size:0.78em; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--accent); text-align:center; margin-bottom:18px; }
+
+/* ── HIGHLIGHT / QUOTE ─────────────────────────────── */
+.section-highlight { background:linear-gradient(135deg, var(--accent), var(--accent2)) !important; }
+.section-highlight::before { display:none; }
+.section-highlight .section-title { color:#fff !important; }
+.section-highlight .chapter-label { color:rgba(255,255,255,0.7); }
+.section-highlight .chapter-label::before { background:rgba(255,255,255,0.5); }
+blockquote {
+  font-family:var(--heading-font); font-size:clamp(1.4em,3vw,2.2em); font-weight:700; line-height:1.35;
+  color:#fff; max-width:760px; margin:0 auto; text-align:center; padding:16px 32px; position:relative;
+}
+blockquote::before { content:'"'; font-size:4.5em; color:rgba(255,255,255,0.2); position:absolute; top:-10px; left:0; line-height:1; font-family:Georgia,serif; }
+
+/* ── PROGRESS BAR ──────────────────────────────────── */
+.progress-item { margin-bottom:18px; }
+.progress-header { display:flex; justify-content:space-between; margin-bottom:7px; }
+.progress-label { font-size:0.88em; font-weight:600; }
+.section-white .progress-label, .section-light .progress-label { color:#0f1e35; }
+.section-dark  .progress-label { color:var(--text-on-dark); }
+.progress-value { font-size:0.88em; font-weight:700; color:var(--accent); }
+.progress-bar { height:8px; border-radius:100px; overflow:hidden; }
+.section-white .progress-bar, .section-light .progress-bar { background:color-mix(in srgb, var(--accent) 14%, transparent); }
+.section-dark  .progress-bar { background:rgba(255,255,255,0.12); }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:100px; }
+
+/* ── TIMELINE ──────────────────────────────────────── */
+.timeline { position:relative; padding-left:36px; margin-top:28px; }
+.timeline::before { content:''; position:absolute; left:10px; top:0; bottom:0; width:2px; background:linear-gradient(to bottom,var(--accent),var(--accent2)); }
+.timeline-item { position:relative; margin-bottom:32px; }
+.timeline-dot { position:absolute; left:-30px; top:4px; width:14px; height:14px; border-radius:50%; background:var(--accent); border:3px solid var(--bg-base); }
+.section-dark .timeline-dot { border-color:var(--bg-dark); }
+.timeline-date { font-size:0.76em; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:5px; }
+.timeline-title { font-family:var(--heading-font); font-size:1em; font-weight:700; margin-bottom:5px; }
+.section-white .timeline-title, .section-light .timeline-title { color:#0f1e35; }
+.section-dark  .timeline-title { color:#ffffff; }
+.timeline-body { font-size:0.86em; line-height:1.6; }
+.section-white .timeline-body, .section-light .timeline-body { color:var(--text-muted); }
+.section-dark  .timeline-body  { color:var(--text-muted-on-dark); }
+
+/* ── RULE CARDS (10-20-30 style) ───────────────────── */
+.rule-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-top:28px; }
+.rule-card { border-radius:14px; padding:28px 20px; text-align:center; border:2px solid var(--accent); }
+.section-white .rule-card, .section-light .rule-card { background:var(--card-bg); }
+.section-dark  .rule-card { background:var(--card-bg-dark); }
+.rule-number { font-family:var(--heading-font); font-size:2.8em; font-weight:900; color:var(--accent); line-height:1; margin-bottom:8px; }
+.rule-label { font-size:0.84em; font-weight:600; }
+.section-white .rule-label, .section-light .rule-label { color:var(--text-muted); }
+.section-dark  .rule-label { color:var(--text-muted-on-dark); }
+
+/* ── CTA / CONTACTS ────────────────────────────────── */
+.contact-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:28px; }
+.contact-item { border-radius:10px; padding:18px; }
+.section-white .contact-item, .section-light .contact-item { background:var(--card-bg); border:1px solid var(--card-border); }
+.section-dark  .contact-item { background:var(--card-bg-dark); border:1px solid var(--card-border-dark); }
+.contact-type { font-size:0.72em; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:5px; }
+.contact-value { font-size:0.9em; font-weight:500; }
+.section-white .contact-value, .section-light .contact-value { color:#0f1e35; }
+.section-dark  .contact-value { color:var(--text-on-dark); }
+
+/* ── AOS ANIMATIONS ────────────────────────────────── */
+[data-aos] { opacity:0; transition:opacity 0.65s ease, transform 0.65s ease; }
+[data-aos].aos-animate { opacity:1; }
+[data-aos="fade-up"]    { transform:translateY(28px); }
+[data-aos="fade-up"].aos-animate    { transform:translateY(0); }
+[data-aos="fade-right"] { transform:translateX(-28px); }
+[data-aos="fade-right"].aos-animate { transform:translateX(0); }
+[data-aos="fade-left"]  { transform:translateX(28px); }
+[data-aos="fade-left"].aos-animate  { transform:translateX(0); }
+[data-aos="zoom-in"]    { transform:scale(0.93); }
+[data-aos="zoom-in"].aos-animate    { transform:scale(1); }
+
+/* ── RESPONSIVE ────────────────────────────────────── */
+@media (max-width:768px) {
+  .section { padding:80px 6%; }
+  .stats-grid { grid-template-columns:repeat(2,1fr); }
+  .cards-grid { grid-template-columns:1fr; }
+  .process-flow { flex-direction:column; }
+  .process-step { clip-path:none !important; }
 }
 
-/* ─── SCROLLBAR ─────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-page); }
-::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
-
-${lightTextOverride}`;
+/* ── SCROLLBAR ─────────────────────────────────────── */
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--accent); border-radius:3px; }
+`;
 }
 
 function buildPrompt(text: string, filename: string, config: GenerationConfig): string {
@@ -520,8 +359,11 @@ function buildPrompt(text: string, filename: string, config: GenerationConfig): 
     : config.language === 'it' ? 'Italian' : 'English';
 
   const css = buildDesignSystem(palette, config.style);
+  const isLight = config.style === 'minimal' || config.style === 'professional';
+  const defaultSection = isLight ? 'section-white' : 'section-dark';
+  const altSection = isLight ? 'section-light' : 'section-dark';
 
-  return `You are an expert web designer. Generate a stunning, scrollable HTML document using the EXACT design system below.
+  return `You are an expert web designer creating a document that looks like a premium Gamma.app presentation.
 
 LANGUAGE: ${lang}
 USE CASE: ${config.useCase.toUpperCase()}
@@ -531,14 +373,14 @@ TARGET: approximately ${config.slideCount} sections.
 
 ---
 
-MANDATORY: Use this EXACT HTML shell — do NOT change the <head> or the script block:
+USE THIS EXACT HTML SHELL (do NOT change the <head> or the <script> block structure):
 
 <!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>[DOCUMENT TITLE]</title>
+<title>[DOCUMENT TITLE HERE]</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/material-icons@1.13.12/iconfont/material-icons.min.css">
@@ -548,198 +390,246 @@ ${css}
 </style>
 </head>
 <body>
-  [YOUR SECTIONS HERE]
-  <script>
-    // AOS init
-    document.addEventListener('DOMContentLoaded', () => {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('aos-animate'); } });
-      }, { threshold: 0.1 });
-      document.querySelectorAll('[data-aos]').forEach(el => observer.observe(el));
-    });
-    // [YOUR CHART.JS INITS HERE]
-  </script>
+
+[YOUR SECTIONS HERE]
+
+<script>
+// AOS
+document.addEventListener('DOMContentLoaded', () => {
+  const obs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting) e.target.classList.add('aos-animate'); }), { threshold: 0.08 });
+  document.querySelectorAll('[data-aos]').forEach(el => obs.observe(el));
+});
+// [CHART.JS INITS HERE — one per canvas id]
+</script>
 </body>
 </html>
 
 ---
 
-AVAILABLE SECTION PATTERNS — use ALL the CSS classes exactly as shown:
+SECTION CLASS RULES:
+- Every <section> must have class="section" PLUS one of: section-white / section-light / section-dark / section-highlight
+- Default for this style: "${defaultSection}"
+- Alternate sections: use "${altSection}" to create visual rhythm
+- section-highlight = gradient bg, use sparingly (1-2 max)
+- Always wrap content in <div class="section-inner">
 
-### HERO (always first)
-<section class="section hero">
+---
+
+AVAILABLE COMPONENTS (copy patterns exactly):
+
+### HERO (always first — use section-white or section-dark depending on style)
+<section class="section section-white">
   <div class="section-inner">
-    <div class="hero-badge"><span class="material-icons" style="font-size:1em">eco</span> CATEGORY LABEL</div>
-    <h1 class="section-title"><span class="gradient">Main Title</span></h1>
-    <p class="section-body">Compelling subtitle describing the document.</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-      <span class="tag">Tag 1</span><span class="tag">Tag 2</span><span class="tag">Tag 3</span>
+    <div class="hero-badge"><span class="material-icons" style="font-size:0.9em">location_city</span> ENTITY NAME</div>
+    <h1 class="section-title"><span class="gradient">Main Title of</span><br>The Document</h1>
+    <p class="section-body">Compelling subtitle or description from document content.</p>
+    <div class="tags"><span class="tag">Tag 1</span><span class="tag">Tag 2</span></div>
+  </div>
+</section>
+
+### STATS (great for chapter 3-type number sections)
+<section class="section section-white">
+  <div class="section-inner">
+    <div class="chapter-label">Key Numbers</div>
+    <h2 class="section-title">Title with <span class="accent">Real Data</span></h2>
+    <p class="section-body">Brief context paragraph.</p>
+    <div class="stats-grid" data-aos="zoom-in">
+      <div class="stat-item"><span class="stat-number">2.163</span><div class="stat-label">Alberi censiti</div><div class="stat-desc">Tutto il territorio</div></div>
+      <div class="stat-item"><span class="stat-number">44</span><div class="stat-label">Generi botanici</div><div class="stat-desc">Biodiversità</div></div>
+      <!-- 3-4 stats with REAL numbers from document -->
     </div>
   </div>
 </section>
 
-### STATS
-<section class="section [section-alt if alternating]">
+### CARDS
+<section class="section section-dark">
   <div class="section-inner">
-    <div class="section-label">Key Numbers</div>
-    <h2 class="section-title">Title <span class="accent">in numbers</span></h2>
-    <div class="stats-grid">
-      <div class="stat-card" data-aos="zoom-in"><span class="stat-number">1,234</span><span class="stat-label">Label for this stat</span></div>
-      <!-- repeat 3-4 stats with REAL data from document -->
-    </div>
-  </div>
-</section>
-
-### CONTENT WITH LIST
-<section class="section [section-alt if alternating]">
-  <div class="section-inner">
-    <div class="section-label">Section Topic</div>
-    <h2 class="section-title">Section Title</h2>
-    <p class="section-body">Brief intro paragraph.</p>
-    <ul class="feature-list">
-      <li data-aos="fade-up" data-aos-delay="0"><strong>Point one</strong> — explanation from document</li>
-      <!-- 4-6 items max -->
-    </ul>
-  </div>
-</section>
-
-### CARDS GRID
-<section class="section [section-alt if alternating]">
-  <div class="section-inner">
-    <div class="section-label">Category</div>
+    <div class="chapter-label">Category</div>
     <h2 class="section-title">Cards Title</h2>
     <div class="cards-grid">
-      <div class="card" data-aos="fade-up">
-        <span class="card-icon">🌱</span>
+      <div class="card" data-aos="fade-up" data-aos-delay="0">
+        <span class="card-icon"><span class="material-icons" style="color:var(--accent)">shield</span></span>
         <div class="card-title">Card Title</div>
-        <div class="card-body">Card description from document content.</div>
+        <div class="card-body">Description from document content.</div>
       </div>
-      <!-- 2-3 cards -->
+      <!-- 2-4 cards -->
     </div>
   </div>
 </section>
 
-### TWO COLUMN (text + chart or text + stats)
-<section class="section [section-alt if alternating]">
+### PROCESS FLOW (for step-by-step or 3-factor explanations)
+<section class="section section-dark">
+  <div class="section-inner">
+    <div class="chapter-label">Process</div>
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-body">Introduction paragraph.</p>
+    <div class="process-flow" data-aos="fade-up">
+      <div class="process-step">
+        <div class="process-step-icon">🌳</div>
+        <div class="process-step-title">Step One</div>
+        <div class="process-step-body">Description.</div>
+      </div>
+      <div class="process-step">
+        <div class="process-step-icon">📊</div>
+        <div class="process-step-title">Step Two</div>
+        <div class="process-step-body">Description.</div>
+      </div>
+      <div class="process-step">
+        <div class="process-step-icon">✅</div>
+        <div class="process-step-title">Step Three</div>
+        <div class="process-step-body">Description.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+### PRIORITY ROWS (numbered list with styled rows)
+<section class="section section-white">
+  <div class="section-inner">
+    <div class="chapter-label">Results</div>
+    <h2 class="section-title">Priority List</h2>
+    <p class="section-body">Intro text.</p>
+    <div class="priority-list">
+      <div class="priority-row" data-aos="fade-up">
+        <div class="priority-num">1</div>
+        <div class="priority-content">
+          <div class="priority-title">Item Title</div>
+          <div class="priority-body">38 alberi (6,4%) — description of priority level.</div>
+        </div>
+      </div>
+      <!-- repeat for each item -->
+    </div>
+  </div>
+</section>
+
+### INFO BOX + TWO COLUMN
+<section class="section section-dark">
   <div class="section-inner">
     <div class="two-col">
       <div data-aos="fade-right">
-        <div class="section-label">Label</div>
+        <div class="chapter-label">Topic</div>
         <h2 class="section-title">Title</h2>
-        <p class="section-body">Text content.</p>
-        <ul class="feature-list"><li>Point A</li><li>Point B</li></ul>
+        <p class="section-body">Main text content.</p>
+        <ul class="feature-list">
+          <li><strong>Point A</strong> — explanation</li>
+          <li><strong>Point B</strong> — explanation</li>
+        </ul>
       </div>
       <div data-aos="fade-left">
-        <div class="chart-wrapper">
-          <div class="chart-title">CHART TITLE</div>
-          <canvas id="chart1" height="280"></canvas>
+        <div class="info-box">
+          <div class="info-box-icon">❓</div>
+          <div>
+            <div class="info-box-title">Question Title</div>
+            <div class="info-box-body">Answer or explanation from document.</div>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-icon">💰</div>
+          <div>
+            <div class="info-box-title">Investment</div>
+            <div class="info-box-body"><strong>€ 46.340</strong> — detail.</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-### CHART FULL WIDTH
-<section class="section [section-alt if alternating]">
+### CHART (use REAL data from document)
+<section class="section section-white">
   <div class="section-inner">
-    <div class="section-label">Data</div>
+    <div class="chapter-label">Data</div>
     <h2 class="section-title">Chart Title</h2>
-    <div class="chart-wrapper" data-aos="zoom-in">
-      <div class="chart-title">SUBTITLE</div>
-      <canvas id="chart2" height="350"></canvas>
-    </div>
-  </div>
-</section>
-
-### PROGRESS BARS (for percentages/rankings)
-<section class="section [section-alt if alternating]">
-  <div class="section-inner">
-    <div class="section-label">Label</div>
-    <h2 class="section-title">Title</h2>
-    <div data-aos="fade-up">
-      <div class="progress-item">
-        <div class="progress-header"><span class="progress-label">Item</span><span class="progress-value">75%</span></div>
-        <div class="progress-bar"><div class="progress-fill" style="width:75%"></div></div>
+    <div class="two-col" style="align-items:center">
+      <div data-aos="fade-right">
+        <p class="section-body">Explanation of the data.</p>
+        <ul class="feature-list">
+          <li>Key insight 1</li>
+          <li>Key insight 2</li>
+        </ul>
+      </div>
+      <div data-aos="fade-left">
+        <div class="chart-wrapper">
+          <div class="chart-subtitle">CHART LABEL</div>
+          <canvas id="chart1" height="300"></canvas>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-### HIGHLIGHT / QUOTE
-<section class="section highlight-section">
-  <div class="section-inner" style="text-align:center">
-    <div class="section-label">Key Message</div>
-    <blockquote>Impactful quote or key statement from the document.</blockquote>
-  </div>
-</section>
-
-### TIMELINE
-<section class="section [section-alt if alternating]">
+### RULE CARDS (for 10-20-30 type rules or 3 key principles)
+<section class="section section-dark">
   <div class="section-inner">
-    <div class="section-label">Timeline</div>
-    <h2 class="section-title">Chronology</h2>
-    <div class="timeline">
-      <div class="timeline-item" data-aos="fade-up">
-        <div class="timeline-dot"></div>
-        <div class="timeline-date">2023</div>
-        <div class="timeline-title">Event Title</div>
-        <div class="timeline-body">Description.</div>
-      </div>
+    <div class="chapter-label">Rules</div>
+    <h2 class="section-title">The Rule of <span class="accent">10-20-30</span></h2>
+    <p class="section-body">Explanation of the rule.</p>
+    <div class="rule-grid" data-aos="zoom-in">
+      <div class="rule-card"><div class="rule-number">Max 10%</div><div class="rule-label">Per singola specie</div></div>
+      <div class="rule-card"><div class="rule-number">Max 20%</div><div class="rule-label">Per singolo genere</div></div>
+      <div class="rule-card"><div class="rule-number">Max 30%</div><div class="rule-label">Per singola famiglia</div></div>
     </div>
   </div>
 </section>
 
-### CTA / CLOSING (always last)
-<section class="section">
+### HIGHLIGHT (use max 1-2 times)
+<section class="section section-highlight">
   <div class="section-inner" style="text-align:center">
-    <div class="section-label">Conclusion</div>
-    <h2 class="section-title">Closing Message</h2>
-    <p class="section-body">Summary or call to action.</p>
+    <div class="chapter-label">Key Message</div>
+    <blockquote>Powerful quote or key statement from the document.</blockquote>
+  </div>
+</section>
+
+### CLOSING (always last)
+<section class="section section-dark">
+  <div class="section-inner">
+    <div class="chapter-label">Conclusion</div>
+    <h2 class="section-title">Closing Title</h2>
+    <p class="section-body">Summary paragraph.</p>
     <div class="contact-grid">
-      <div class="contact-item"><div class="label">Contact Type</div><div class="value">Value</div></div>
+      <div class="contact-item"><div class="contact-type">Website</div><div class="contact-value">www.comune.it</div></div>
+      <!-- use real contacts if found in document -->
     </div>
   </div>
 </section>
 
 ---
 
-CHART.JS INITIALIZATION (add all chart inits in the script block):
+CHART.JS INIT TEMPLATE (add in the <script> block for each chart):
 new Chart(document.getElementById('chart1'), {
-  type: 'bar', // or 'pie', 'doughnut', 'line'
+  type: 'doughnut', // or 'bar', 'pie', 'line', 'horizontalBar'
   data: {
-    labels: ['Label1', 'Label2', 'Label3'],
+    labels: ['Tilia 31%', 'Acer 20%', 'Carpinus 9%', 'Altri 40%'],
     datasets: [{
-      label: 'Dataset name',
-      data: [val1, val2, val3],
-      backgroundColor: ['${palette.primary}cc', '${palette.secondary}cc', '${palette.primary}88'],
-      borderColor: ['${palette.primary}', '${palette.secondary}', '${palette.primary}'],
-      borderWidth: 2,
-      borderRadius: 8,
+      data: [31.07, 20.11, 9.2, 39.62],
+      backgroundColor: ['${palette.primary}', '${palette.secondary}', '${palette.primary}99', '${palette.secondary}66', '${palette.primary}44'],
+      borderWidth: 0,
+      hoverOffset: 8,
     }]
   },
   options: {
-    responsive: true,
+    responsive: true, cutout: '55%',
     plugins: {
-      legend: { labels: { color: '${palette.text}', font: { family: 'Inter', size: 12 } } }
-    },
-    scales: {
-      x: { ticks: { color: '${palette.text}88' }, grid: { color: '${palette.text}11' } },
-      y: { ticks: { color: '${palette.text}88' }, grid: { color: '${palette.text}11' } }
+      legend: { position: 'right', labels: { color: '${isLight ? '#0f1e35' : palette.text}', font: { family: 'Inter', size: 12 }, padding: 16, boxWidth: 12, borderRadius: 4 } }
     }
   }
 });
 
+For bar charts use:
+  type: 'bar',
+  data: { labels: [...], datasets: [{ data: [...], backgroundColor: '${palette.primary}cc', borderRadius: 8, borderSkipped: false }] },
+  options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '${isLight ? '#5a6a7e' : 'rgba(255,255,255,0.6)'}' }, grid: { color: '${isLight ? '#e5e7eb' : 'rgba(255,255,255,0.08)'}' } }, y: { ticks: { color: '${isLight ? '#5a6a7e' : 'rgba(255,255,255,0.6)'}' }, grid: { display: false } } } }
+
 ---
 
-RULES:
-- Use ONLY the CSS classes defined above — no custom styles
-- Add data-aos="fade-up" (or fade-right, fade-left, zoom-in) to every major element
-- Add data-aos-delay="100", "200", "300" to stagger children
-- Alternate sections with class="section" and class="section section-alt"
-- Extract REAL numbers and data from the document for stats and charts
-- If document has no numeric data, use content sections, cards, and quotes instead
-- Use material-icons with <span class="material-icons">icon_name</span> for card icons
-- NO placeholder text, NO fake data
+IMPORTANT RULES:
+- Use ONLY the CSS classes defined above — do NOT add custom inline styles except minor adjustments
+- Add data-aos="fade-up" (or fade-right/fade-left/zoom-in) to every major element
+- Add data-aos-delay="100"/"200"/"300" to stagger children within a section
+- Alternate section-white/section-light/section-dark for visual rhythm
+- Use REAL data, numbers, and quotes from the document — NO placeholder text
+- Use material-icons: <span class="material-icons">icon_name</span>
+- Sections must have class="section" + one background class
 
 ---
 
@@ -760,26 +650,16 @@ export async function generatePresentation(
   onProgress?: (status: string) => void
 ): Promise<string> {
   onProgress?.('Preparazione del prompt...');
-
   const prompt = buildPrompt(text, filename, config);
   const model = getGeminiModel(config.model || 'gemini-2.0-flash');
-
   onProgress?.(`Generazione con ${config.model || 'Gemini'}...`);
-
   const result = await model.generateContent(prompt);
   const response = result.response.text();
-
   onProgress?.('Elaborazione risposta...');
-
   const cleaned = response
-    .replace(/^```html\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim();
-
+    .replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
   if (!cleaned.toLowerCase().includes('<!doctype html')) {
     throw new Error('La risposta AI non contiene HTML valido. Riprova.');
   }
-
   return cleaned;
 }

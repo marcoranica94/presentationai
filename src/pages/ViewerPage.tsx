@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Download, Maximize2, FileDown,
-  Share2, Copy, Check, Globe, GlobeLock, Minimize2, Code
+  Share2, Copy, Check, Globe, GlobeLock, Minimize2, Code, ImageDown
 } from 'lucide-react';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { downloadHTML, printAsPDF } from '@/lib/exportService';
 import { setContentPublic, buildShareUrl, copyToClipboard } from '@/lib/shareService';
+import { exportAsInstagram } from '@/lib/instagramExport';
 import type { GeneratedContent } from '@/types';
 
 function toDate(val: unknown): Date {
@@ -29,6 +30,8 @@ export function ViewerPage() {
   const [toggling, setToggling] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [exportingIG, setExportingIG] = useState(false);
+  const [igProgress, setIgProgress] = useState('');
   const shareRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,6 +76,24 @@ export function ViewerPage() {
     if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
   };
 
+  const handleInstagramExport = async () => {
+    if (!content) return;
+    setExportingIG(true);
+    setIgProgress('Avvio...');
+    try {
+      await exportAsInstagram(
+        content.htmlContent,
+        filename,
+        (current, total, status) => setIgProgress(total > 0 ? `${current}/${total} — ${status}` : status)
+      );
+    } catch (err) {
+      alert(String(err));
+    } finally {
+      setExportingIG(false);
+      setIgProgress('');
+    }
+  };
+
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center">
       <Spinner className="h-8 w-8 text-primary" />
@@ -111,6 +132,9 @@ export function ViewerPage() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => printAsPDF(content.htmlContent, filename)}>
             <FileDown className="h-4 w-4" /> PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleInstagramExport} disabled={exportingIG}>
+            <ImageDown className="h-4 w-4" /> {exportingIG ? igProgress : 'Instagram'}
           </Button>
 
           {/* Share */}
